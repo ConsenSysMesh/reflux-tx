@@ -1,0 +1,58 @@
+{
+  "name": "reflux-txs",
+  "version": "0.0.0",
+  "description": "Reflux higher-order component to store and retrieve ethereum transactions and related info",
+  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/consensys/reflux-txs.git"
+  },
+  "keywords": [
+    "react",
+    "web3",
+    "reflux",
+    "tx",
+    "ethereum"
+  ],
+  "author": "Connor Keenan <connor.keenan@consensys.net> (http://www.consensys.net)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/consensys/reflux-txs/issues"
+  },
+  "homepage": "https://github.com/consensys/reflux-txs",
+  "dependencies": {
+    "localforage": "1.2.7",
+    "lodash": "3.9.x",
+    "object-assign": "*",
+    "react": "0.13.x",
+    "react-mixin": "*",
+    "react-pure-render": "*",
+    "reflux": "0.2.x",
+    "reflux-state-mixin": "0.3.1",
+    "web3": "*"
+  },
+  "devDependencies": {
+    "babel": "^4.6.4",
+    "babel-core": "^4.7.16",
+    "babel-jest": "*",
+    "babel-loader": "^4.2.0",
+    "babel-runtime": "^5.1.11",
+    "exports-loader": "^0.6.2",
+    "jest-cli": "0.4.x",
+    "webpack": "^1.7.3"
+  },
+  "jest": {
+    "testPathDirs": ["<rootDir>/src"],
+    "scriptPreprocessor": "./node_modules/babel-jest",
+    "unmockedModulePathPatterns": [
+      "react",
+      "reflux"
+    ]
+  },
+  "scripts": {
+    "build:js": "webpack && webpack --config webpack.config.min.js",
+    "prepublish": "babel -d ./lib ./src/",
+    "postpublish": "rm -r ./lib",
+    "test": "jest"
+  }
+}
