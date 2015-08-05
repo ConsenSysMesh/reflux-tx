@@ -1,7 +1,7 @@
 {
   "name": "reflux-tx",
   "version": "0.0.0",
-  "description": "Reflux higher-order component to store and retrieve ethereum transactions and related info",
+  "description": "Reflux store and component wrapper to store and retrieve ethereum transactions and related info",
   "main": "lib/index.js",
   "repository": {
     "type": "git",

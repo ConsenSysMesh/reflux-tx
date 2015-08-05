@@ -13,7 +13,7 @@ Reflux store for connecting transactions and related info to your React componen
 * TXStore
 * TXComponent
 
-###Installation
+### Installation
 
 `npm install reflux-tx`
 
@@ -33,7 +33,7 @@ Also, webpack requires these config additions to use localforage:
 Usage
 --------------
 
-####initialization
+#### initialization
 Before connecting to the store, you must first initialize it in a toplevel component with `TXActions.connect()`. This loads the genesis identifier required for storing any transaction data.
 
 Available options
@@ -48,7 +48,7 @@ Example:
 
 `TXActions.connect({provider: 'http://localhost:8545', confirmCount: 10, bufferSize: 5})`
 
-####create a transaction
+#### create a transaction
 Add transaction to TXStore with `TXActions.add(txInfo)` where `txInfo` is an object or array of objects containing at least a `{hash: '0x..'}` property referencing a transaction hash. Any additional properties will be saved and can be used to filter out transactions by arbitrary data.
 
 Example:
@@ -61,7 +61,7 @@ TXActions.add({
 });
 ```
 
-####view transactions
+#### view transactions
 React components can use the TXComponent wrapper to inherit the latest `blockNumber` as well as `pending` or `unconfirmed` transactions as its properties.
 
 Transaction objects have 3 possible fields
@@ -95,6 +95,6 @@ console.log(this.props.blockNumber)
 30000
 ```
 
-###Notes
+### Notes
 
 A component's blockNumber property will only update while you have transactions matching the wrapping TXComponent's `filter` and `keys`
