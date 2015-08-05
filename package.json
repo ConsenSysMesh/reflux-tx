@@ -1,11 +1,11 @@
 {
-  "name": "reflux-txs",
+  "name": "reflux-tx",
   "version": "0.0.0",
   "description": "Reflux higher-order component to store and retrieve ethereum transactions and related info",
   "main": "lib/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/consensys/reflux-txs.git"
+    "url": "https://github.com/consensys/reflux-tx.git"
   },
   "keywords": [
     "react",
@@ -17,9 +17,9 @@
   "author": "Connor Keenan <connor.keenan@consensys.net> (http://www.consensys.net)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/consensys/reflux-txs/issues"
+    "url": "https://github.com/consensys/reflux-tx/issues"
   },
-  "homepage": "https://github.com/consensys/reflux-txs",
+  "homepage": "https://github.com/consensys/reflux-tx",
   "dependencies": {
     "localforage": "1.2.7",
     "lodash": "3.9.x",

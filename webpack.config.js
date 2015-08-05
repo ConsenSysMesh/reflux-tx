@@ -4,11 +4,11 @@ var	path = require("path");
 module.exports = {
 	entry: path.resolve(__dirname, "src/index.jsx"),
 	output: {
-		library: "Web3TX",
+		library: "RefluxTX",
 		libraryTarget: "umd",
 
 		path: path.resolve(__dirname, "dist"),
-		filename: "reflux-txs.js"
+		filename: "reflux-tx.js"
 	},
 	module: {
 		noParse: [
@@ -27,8 +27,13 @@ module.exports = {
 		}
 	},
 	externals: {
+		localforage: 'lf',
+		localforage: 'localforage',
+		lodash: '_',
 		react: 'React',
+		'react-mixin': 'ReactMixin',
 		reflux: 'Reflux',
+		'reflux-state-mixin': 'StateMixinFactory',
 		web3: true
 	},
 	devtool: 'eval'
