@@ -14,7 +14,7 @@ export default Reflux.createStore({
 
   prevBlock: null,
   // How many blocks to wait until txs aren't checked
-  confirmTime: 6,
+  confirmCount: 12,
   // Maximum number of confirmed transactions to keep in storage
   bufferSize: 100,
   // Web3 filter ID
@@ -114,17 +114,17 @@ export default Reflux.createStore({
       if (pendex !== -1) {
         pending.splice(pendex, 1);
       }
-      //pendingSet.delete(hash);
+
+      var unconfdex = unconfirmed.indexOf(hash);
 
       // If unconfirmed
-      if (!(recpt.blockNumber + this.confirmTime <= blockNumber)) {
-        //unconfirmedSet.add(recpt.transactionHash);
-        var unconfdex = unconfirmed.indexOf(hash);
+      if (!(recpt.blockNumber + this.confirmCount <= blockNumber)) {
         if (unconfdex === -1) {
           unconfirmed.push(hash);
           this.startWatching();
         }
-      }
+      } else
+        unconfirmed.splice(unconfdex, 1);
 
       _.set(_pending, this.state.genesis, pending);
       _.set(_unconfirmed, this.state.genesis, unconfirmed);
@@ -197,6 +197,7 @@ export default Reflux.createStore({
       }
       txIndex++;
     }
+
     _txs = _.set(_txs, _genesis, txs);
     if (txIndex)
       this.setState({info: _info, txs: _txs});
@@ -334,16 +335,13 @@ export default Reflux.createStore({
    available options:
   {
     provider: '',       //  web3 provider
-    confirmTime: 20,    //  # of blocks until a tx is sufficiently confirmed
+    confirmCount: 20,    //  # of blocks until a tx is sufficiently confirmed
     bufferSize: 50      //  Max # of confirmed transactions to keep in storage
   }
   */
-  doCallback(cb) {
-    cb();
-  },
   onConnect(opts) {
     if (_.has(opts, 'provider')) web3.setProvider(new web3.providers.HttpProvider(opts.provider));
-    if (_.has(opts, 'confirmTime')) this.confirmTime = opts.confirmTime;
+    if (_.has(opts, 'confirmCount')) this.confirmCount = opts.confirmCount;
     if (_.has(opts, 'bufferSize')) this.bufferSize = opts.bufferSize;
 
     this.setGenesis(function(err) {

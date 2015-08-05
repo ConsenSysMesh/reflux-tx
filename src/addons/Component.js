@@ -9,6 +9,11 @@ import assign from 'object-assign';
 
 // Keys that transform into 
 var keyFields = {'txs': ['objects', 'info', 'receipts'], 'pending': ['objects', 'info'], 'unconfirmed': ['objects', 'info', 'receipts']};
+var mapOverride = {
+  'objects': 'data',
+  'receipts': 'receipt',
+  'info': 'info'
+};
 
 class TXComponent extends Component {
   constructor(props, context) {
@@ -51,7 +56,7 @@ class TXComponent extends Component {
       }).map(function(hash) {
         // return the fields
         return fields.reduce(function(obj, field) {
-          obj[field] = state[field][hash];
+          obj[mapOverride[field]] = state[field][hash];
           return obj;
         }, {});
       });
