@@ -93,7 +93,7 @@ class TXComponent extends Component {
       return o;
     }, {});
 
-    return React.addons.cloneWithProps(
+    return React.cloneElement(
         child,
         assign(statePass)
         );
