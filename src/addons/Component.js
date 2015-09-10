@@ -22,6 +22,7 @@ class TXComponent extends Component {
         pending: [],
         unconfirmed: [],
         txs: [],
+        timestamp: 0,
         blockNumber: 0
       };
   }
@@ -66,6 +67,9 @@ class TXComponent extends Component {
     if (didUpdate && state.hasOwnProperty('blockNumber'))
       filteredState.blockNumber = state.blockNumber;
 
+    if (didUpdate && state.hasOwnProperty('timestamp'))
+      filteredState.timestamp = state.timestamp;
+
     this.setState(filteredState);
   }
   componentDidMount() {
@@ -86,7 +90,7 @@ class TXComponent extends Component {
   // Pass on state as requested from this.props.keys
   passTXs(child) {
     var state = this.state;
-    var keys = this.props.keys.concat(['blockNumber']);
+    var keys = this.props.keys.concat(['blockNumber', 'timestamp']);
 
     let statePass = keys.reduce(function(o, key) {
       o[key] = state[key];

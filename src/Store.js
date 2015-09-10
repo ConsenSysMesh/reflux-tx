@@ -34,10 +34,12 @@ export default Reflux.createStore({
 
   getInitialState() {
     return {
+      error: null,
       // Genesis identifier (getBlock(0).hash)
       genesis: '',
       // Current blockNumber (while pending.length && unconfirmed.length)
       blockNumber: 0,
+      timestamp: 0, 
 
       // Arrays of tx hashes (chronological) mapped by genesis id
       txs: {},      // (persists)
@@ -67,6 +69,7 @@ export default Reflux.createStore({
       res.forEach(function(v, i) {
         newState[storedKeys[i]] = v ? JSON.parse(v) : defaults[i];
       });
+
       this.setState(newState);
       cb();
     }.bind(this));
@@ -83,7 +86,7 @@ export default Reflux.createStore({
     if (!txs.length) return;
 
     var blockNumber = web3.eth.blockNumber;
-    this.setState({blockNumber: blockNumber});
+    this.recordBlock(blockNumber);
     var batch = web3.createBatch();
 
     var _pending = this.state.pending;
@@ -91,7 +94,10 @@ export default Reflux.createStore({
 
     // If no receipt, hash is pending, else move from pending to unconfirmed
     function handleReceipt(hash, err, recpt) {
-      if (err) return;
+      if (err) {
+        this.setState({error: err});
+        return;
+      }
 
       // No receipt for hash, it's still pending
       if (!recpt || !recpt.transactionHash) {
@@ -135,7 +141,10 @@ export default Reflux.createStore({
 
     // Always update the tx object
     function handleData(err, data) {
-      if (err) return;
+      if (err) {
+        this.setState({error: err});
+        return;
+      }
       if (!data || !data.hash) return;
 
       _.set(this.state.objects, data.hash, data);
@@ -216,7 +225,10 @@ export default Reflux.createStore({
   // TODO: add a timeout for unreceived pending?
   newBlock(err, hash) {
     web3.eth.getBlock(hash, function(err, block) {
-      if (err) return;
+      if (err) {
+        this.setState({error: err});
+        return;
+      }
       var blockNumber = block.number;
       var pending = _.get(this.state.pending, this.state.genesis, []);
       var unconfirmed = _.get(this.state.unconfirmed, this.state.genesis, []);
@@ -227,8 +239,9 @@ export default Reflux.createStore({
       if (this.prevBlock && this.prevBlock.hash !== block.parentHash) {
         reloadTxs = reloadTxs.concat(unconfirmed);
         //reloadTxs = new Set([...pending, ...unconfirmed]);
-        this.setState({lastFork: blockNumber, blockNumber: blockNumber});
-      } else this.setState({blockNumber: blockNumber});
+        this.setState({lastFork: blockNumber, blockNumber: blockNumber, timestamp: block.timestamp});
+      } else this.setState({blockNumber: blockNumber, timestamp: block.timestamp});
+
       this.prevBlock = block;
 
       // Stop watching when no unconfirmed or pending txs left
@@ -272,9 +285,23 @@ export default Reflux.createStore({
 
   // Remove pending for current genesis
   onClearPending() {
-    var _pending = this.state.pending;
-    delete _pending[this.state.genesis];
-    this.setState({pending: _pending});
+    var _pending = this.state.pending[this.state.genesis];
+    var _txs = this.state.txs[this.state.genesis];
+    var _info = this.state.info;
+
+    _pending.forEach(function(p) {
+      var txIndex = _txs.indexOf(p);
+      if (txIndex > -1) {
+        _txs.splice(txIndex, 1);
+        delete _info[p];
+      }
+    });
+
+    delete this.state.pending[this.state.genesis];
+
+    this.setState({pending: _pending, txs: _txs, info: _info});
+    this.save('txs', _txs);
+    this.save('info', _info);
   },
 
   // Remove less-permanent state and storage
@@ -291,8 +318,8 @@ export default Reflux.createStore({
     delete _unconfirmed[_genesis];
 
     this.setState({txs: _txs, info: _info, pending: _pending, unconfirmed: _unconfirmed});
-    this.save('txs', txs);
-    this.save('info', info);
+    this.save('txs', _txs);
+    this.save('info', _info);
   },
 
   // For each txInfo, check if the hash exists in txInfo already, if it does, overwrite txInfo but don't append to tx array
@@ -331,6 +358,28 @@ export default Reflux.createStore({
     this.loadTxData(newHashes);
   },
 
+  recordBlock(blockNum) {
+    function getBlock(cb) {
+      if (blockNum) return cb(null, blockNum);
+      else web3.eth.getBlockNumber(cb);
+    }
+
+    getBlock(function(err, blockNumber) {
+      if (err) {
+        this.setState({error: err});
+        return;
+      }
+
+      web3.eth.getBlock(blockNumber, function(err, block) {
+        if (err) {
+          this.setState({error: err});
+          return;
+        }
+        this.setState({blockNumber: blockNumber, timestamp: block.timestamp});
+      }.bind(this));
+    }.bind(this));
+  },
+
   /*
    available options:
   {
@@ -345,10 +394,14 @@ export default Reflux.createStore({
     if (_.has(opts, 'bufferSize')) this.bufferSize = opts.bufferSize;
 
     this.setGenesis(function(err) {
-      if (err) throw err;
+      if (err) {
+        this.setState({error: err});
+        return;
+      }
+
       this.loadStorage(function() {
         this.loadTxData();
-        this.setState({blockNumber: web3.eth.blockNumber});
+        this.recordBlock();
       }.bind(this));
     }.bind(this));
   }
