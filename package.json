@@ -1,6 +1,6 @@
 {
   "name": "reflux-tx",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Reflux store and component wrapper to store and retrieve ethereum transactions and related info",
   "main": "lib/index.js",
   "repository": {
