@@ -5,5 +5,6 @@ export default Reflux.createActions([
     'clear',
     'clearAll',
     'clearPending',
-    'connect'
+    'connect',
+    'remove'
 ]);

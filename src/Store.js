@@ -48,8 +48,10 @@ export default Reflux.createStore({
 
       // arbitrary info mapped to tx hash
       info: {},     // (persists)
+
       // result of getTransaction(hash)
       objects: {},
+
       // result of getTransactionReceipt(hash)
       receipts: {},
 
@@ -77,7 +79,7 @@ export default Reflux.createStore({
 
   // Load the tx info for an array of transactions (defaults to this.txs)
   // Save any unclaimed transactions into pending
-  loadTxData(payload) {
+  loadTxData(payload, callback = null) {
     var txs;
     var _genesis = this.state.genesis;
     txs = this.toArr(payload);
@@ -91,6 +93,8 @@ export default Reflux.createStore({
 
     var _pending = this.state.pending;
     var pending = _pending[_genesis] || [];
+    var dataCount = 0;
+    var errors = [];
 
     // If no receipt, hash is pending, else move from pending to unconfirmed
     function handleReceipt(hash, err, recpt) {
@@ -103,8 +107,7 @@ export default Reflux.createStore({
       if (!recpt || !recpt.transactionHash) {
         if (pending.indexOf(hash) === -1) {
           pending.push(hash);
-          _.set(_pending, _genesis, pending);
-          this.setState({pending: _pending});
+          this.setState({pending: _.set(_pending, _genesis, pending)});
           this.startWatching();
         }
         return;
@@ -140,20 +143,22 @@ export default Reflux.createStore({
     }
 
     // Always update the tx object
-    function handleData(err, data) {
-      if (err) {
+    function handleData(hash, err, data) {
+      // Assume this must be a connection error, not positive though (TODO)
+      if (err)
         this.setState({error: err});
-        return;
-      }
-      if (!data || !data.hash) return;
+      else if (!data || !data.hash)
+        errors.push(hash);
+      else
+        this.setState({objects: _.set(this.state.objects, data.hash, data)});
 
-      _.set(this.state.objects, data.hash, data);
-      this.setState({objects: this.state.objects});
+      if (++dataCount == txs.length && typeof callback === 'function')
+        callback(data.length ? data : null);
     }
 
     // Batch the transaction data requests
     txs.forEach(function(hash) {
-      batch.add(web3.eth.getTransaction.request(hash, handleData.bind(this)));
+      batch.add(web3.eth.getTransaction.request(hash, handleData.bind(this, hash)));
       batch.add(web3.eth.getTransactionReceipt.request(hash, handleReceipt.bind(this, hash)));
     }.bind(this));
 
@@ -207,9 +212,8 @@ export default Reflux.createStore({
       txIndex++;
     }
 
-    _txs = _.set(_txs, _genesis, txs);
     if (txIndex)
-      this.setState({info: _info, txs: _txs});
+      this.setState({info: _info, txs: _.set(_txs, _genesis, txs)});
   },
 
   // Get block zero hash
@@ -312,7 +316,10 @@ export default Reflux.createStore({
     var _unconfirmed = this.state.unconfirmed;
     var _genesis = this.state.genesis;
 
-    delete _info[_genesis];
+    _txs[_genesis].forEach(function(hash) {
+      delete _info[hash];
+    });
+
     delete _txs[_genesis];
     delete _pending[_genesis];
     delete _unconfirmed[_genesis];
@@ -323,7 +330,7 @@ export default Reflux.createStore({
   },
 
   // For each txInfo, check if the hash exists in txInfo already, if it does, overwrite txInfo but don't append to tx array
-  onAdd(payload) {
+  onAdd(payload, cb) {
     // Turn params into array if not already, filter out any not including hash property
     payload = this.toArr(payload).filter(function(el) { return el.hasOwnProperty('hash'); });
 
@@ -355,7 +362,7 @@ export default Reflux.createStore({
     this.save('info', _info);
 
     // Request new transaction objects and receipts from web3
-    this.loadTxData(newHashes);
+    this.loadTxData(newHashes, cb);
   },
 
   recordBlock(blockNum) {
