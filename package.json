@@ -34,25 +34,21 @@
   "devDependencies": {
     "babel": "^4.6.4",
     "babel-core": "^4.7.16",
-    "babel-jest": "*",
     "babel-loader": "^4.2.0",
     "babel-runtime": "^5.1.11",
+    "chai": "^3.2.0",
     "exports-loader": "^0.6.2",
-    "jest-cli": "0.4.x",
+    "mocha": "^2.3.2",
+    "mocha-babel": "^3.0.0",
+    "node-jsdom": "^3.1.5",
+    "sinon": "^1.16.1",
+    "sinon-chai": "^2.8.0",
     "webpack": "^1.7.3"
-  },
-  "jest": {
-    "testPathDirs": ["<rootDir>/src"],
-    "scriptPreprocessor": "./node_modules/babel-jest",
-    "unmockedModulePathPatterns": [
-      "react",
-      "reflux"
-    ]
   },
   "scripts": {
     "build:js": "webpack && webpack --config webpack.config.min.js",
     "prepublish": "babel -d ./lib ./src/",
     "postpublish": "rm -r ./lib",
-    "test": "jest"
+    "test": "mocha --opts ./test/mocha.opts --compilers js:babel/register --recursive test/*.jsx"
   }
 }

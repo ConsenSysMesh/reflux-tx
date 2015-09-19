@@ -1,0 +1,50 @@
+{
+  "noFork": {
+    "length": 20,
+    "txs": [
+      {
+        "from": 0,
+        "nonce": 0,
+
+        "reception": {
+          "0": 2
+        }
+      }
+    ]
+  },
+  "forkToFail": {
+    "forks": {
+      "6": 1
+    },
+    "length": 20,
+    "txs": [
+      {
+        "from": 0,
+        "nonce": 0,
+        "reception": {
+          "0": 2
+        }
+      }
+    ]
+  },
+  "twotxs": {
+    "length": 20,
+    "txs": [
+      {
+        "id": "winner",
+        "from": 0,
+        "nonce": 0,
+
+        "reception": {
+          "0": 2
+        }
+      },
+      {
+        "id": "loser",
+        "from": 0,
+        "nonce": 0
+      }
+    ]
+
+  }
+}
