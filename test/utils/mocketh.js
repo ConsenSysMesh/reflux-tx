@@ -11,8 +11,10 @@ var mocketh = function(chainName, blockTime) {
 		throw new Error('Could not find chain ' + chainName + ' in chain.json spec file');
 	}
 
-	if (!blockTime) blockTime = 500;
+	this.blockTime = blockTime;
+	if (!blockTime) this.blockTime = 500;
 
+	this.running = true;
 	this.block = this.Block(this.chainId, this.blockNumber);
 	this.blockHashMap = {};
 	this.blockCallbacks = [];
@@ -26,7 +28,7 @@ var mocketh = function(chainName, blockTime) {
 	this.getTransaction.request = this.request.bind(this, 'getTransaction');
 
 	// Fake the chain here
-	this.blockInterval = setInterval(this.incChain.bind(this), blockTime);
+	this.blockInterval = setInterval(this.incChain.bind(this), this.blockTime);
 }
 
 mocketh.prototype.request = function() {
@@ -40,8 +42,10 @@ mocketh.prototype.request = function() {
 }
 
 mocketh.prototype.incChain = function() {
-	if (this.blockNumber++ >= this.chain.length)
+	if (this.blockNumber++ >= this.chain.length - 1) {
 		clearInterval(this.blockInterval);
+		this.running = false;
+	}
 
 	// update chainId
 	if (this.chain.hasOwnProperty('forks') && this.blockNumber in this.chain.forks)

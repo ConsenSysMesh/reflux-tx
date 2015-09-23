@@ -25,7 +25,6 @@ function validateTxReceipt(err, receipt, tx) {
 
 
 describe('Basic Mocketh Coverage', function() {
-
     before(function() {
         web3.eth = new chain('noFork');
     });
@@ -87,6 +86,13 @@ describe('Basic Mocketh Coverage', function() {
                     done();
                 });
             })
+        });
+    });
+
+    it('chain ends', function(done) {
+        web3.eth.onBlock(web3.eth.chain.length, function() {
+            assert.isFalse(web3.eth.running);
+            done();
         });
     });
 });
