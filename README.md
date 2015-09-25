@@ -1,19 +1,38 @@
 reflux-tx
 ============
 
-Reflux store for connecting transactions and related info to your React components
+Reflux store & higher order component for monitoring Ethereum transactions in real-time
 
-###Modules
+#### Features
+
+* Serverless (excluding eth client)
+* Persistent - uses localstorage, retains state over page refreshes
+* Associate arbitrary data with any transaction
+* Detect chain reorgs and failed transactions
+* States filterable by extra properties you can associate w txs
+* Multiple chain support
 
 
-* TXActions
-  * connect()
-  * add()
-  * clear()
-* TXStore
-* TXComponent
+### Possible TX States
 
-### Installation
+
+  ![states](https://raw.githubusercontent.com/ConsenSys/reflux-tx/enhance/docs/tx_states.png)
+
+<dl>
+  <dt><h4>pending</h4></dt>
+  <dd>TX has been accepted as valid, is waiting for receipt into a valid block</dd>
+  <dt><h4>received</h4></dt>
+  <dd>TX has been received into a block, is waiting for sufficient confirmation</dd>
+  <dt><h4>dropped</h4></dt>
+  <dd>TX is dropped when a tx with equal or higher nonce has been received</dd>
+  <dt><h4>confirmed</h4></dt>
+  <dd>Enough blocks have passed since receipt to consider the TX confirmed & a reversion is sufficiently unlikely </dd>
+  <dt><h4>failed</h4></dt>
+  <dd>TX is failed when a tx with equal or higher nonce is confirmed</dd>
+</dl>
+
+
+## Installation
 
 `npm install reflux-tx`
 
@@ -62,22 +81,23 @@ TXActions.add({
 ```
 
 #### view transactions
-React components can use the TXComponent wrapper to inherit the latest `blockNumber` as well as `pending` or `unconfirmed` transactions as its properties.
+React components can use the TXComponent wrapper to inherit the latest `blockNumber`, `timestamp` (block.timesamp), and `blockHash` along with array representations of each transaction state as its properties.
 
-Transaction objects have 3 possible fields
+Transaction state objects have 3 possible fields
 
-Field Name  | Value | Found in props
+Field Name  | Value | In tx states
 ------------- | ------------- | ------------
-info  | txInfo added via TXActions.add() | confirmed, pending
-receipt | object returned from `web3.eth.getTransactionReceipt` | confirmed
-data  | object returned from `web3.eth.getTransaction` | confirmed, pending
+info  | txInfo added via TXActions.add() | *
+data  | object returned from `web3.eth.getTransaction` | *
+receipt | object returned from `web3.eth.getTransactionReceipt` | pending, received, confirmed
+
 
 
 Example:
 
 ```
 	render() {
-		<TXComponent filter={{type: 'deposit'}} keys=['pending', 'unconfirmed'] >
+		<TXComponent filter={{txType: 'deposit'}} >
 			<MyComponent />
 		</TXComponent>
 	}
@@ -85,10 +105,19 @@ Example:
 Would be represented in MyComponent as 
 
 ```
-console.log(this.props.unconfirmed)
+console.log(this.props.received)
+[{info: {...}, receipt: {...}, data: {...}}, ...]
+
+console.log(this.props.confirmed)
 [{info: {...}, receipt: {...}, data: {...}}, ...]
 
 console.log(this.props.pending)
+[{info: {...}, data: {...}}, ...]
+
+console.log(this.props.dropped)
+[{info: {...}, data: {...}}, ...]
+
+console.log(this.props.failed)
 [{info: {...}, data: {...}}, ...]
 
 console.log(this.props.blockNumber)
@@ -97,4 +126,4 @@ console.log(this.props.blockNumber)
 
 ### Notes
 
-A component's blockNumber property will only update while you have transactions matching the wrapping TXComponent's `filter` and `keys`
+reflux-tx will only subscribe to new block info when it's needed for tx confirmations. For that reason, a component's block properties (blockNumber, timestamp, blockHash) will update only while you have pending or received transactions matching the wrapping TXComponent's `filter` and `keys`.
