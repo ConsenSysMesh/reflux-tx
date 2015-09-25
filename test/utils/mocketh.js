@@ -11,6 +11,7 @@ var mocketh = function(chainName, blockTime) {
 		throw new Error('Could not find chain ' + chainName + ' in chain.json spec file');
 	}
 
+	this.chainHash = web3.sha3(JSON.stringify(this.chain));
 	this.blockTime = blockTime;
 	if (!blockTime) this.blockTime = 500;
 
@@ -22,23 +23,22 @@ var mocketh = function(chainName, blockTime) {
 	this.blocks[this.block.blockHash] = this.block;
 	this.filterCallback = null;
 
-	//this.getTransactionReceipt = this.getTransactionReceiptBase.bind(this);
-	
-	this.getTransactionReceipt.request = this.request.bind(this, 'getTransactionReceipt');
-	this.getTransaction.request = this.request.bind(this, 'getTransaction');
+	this.getTransactionReceipt.request = this.request('getTransactionReceipt');
+	this.getTransaction.request = this.request('getTransaction');
 
 	// Fake the chain here
 	this.blockInterval = setInterval(this.incChain.bind(this), this.blockTime);
 }
 
-mocketh.prototype.request = function() {
-	var args = Array.prototype.slice.call(arguments);
-
-	return {
-		call: args.shift(),
-		callback: args.pop(),
-		args: args
-	};
+mocketh.prototype.request = function(type) {
+	return function() {
+		var args = Array.prototype.slice.call(arguments);
+		return {
+			call: type,
+			callback: args.pop(),
+			args: args
+		};
+	}
 }
 
 mocketh.prototype.incChain = function() {
@@ -91,7 +91,7 @@ mocketh.prototype.Transaction = function(spec) {
 }
 
 mocketh.prototype.blockHash = function (chainId, number) {
-	return web3.sha3(chainId + ':' +  number);
+	return web3.sha3(this.chainHash + ':' + chainId + ':' +  number);
 }
 
 mocketh.prototype.getAddress = function(index) {
@@ -117,7 +117,8 @@ mocketh.prototype.getTransaction = function (hash, cb) {
 mocketh.prototype.getTransactionReceipt = function (hash, cb) {
 	var tx = this.chain.txs.filter(function(tx) {
 		return (
-				this.chainId in tx.reception && 
+				tx.hasOwnProperty('reception') &&
+				this.chainId in tx.reception &&
 				tx.reception[this.chainId] <= this.blockNumber &&
 				web3.sha3(JSON.stringify(tx)) === hash
 			);
@@ -128,8 +129,10 @@ mocketh.prototype.getTransactionReceipt = function (hash, cb) {
 	return cb(null, null);
 }
 
-mocketh.prototype.getBlockNumber = function () {
-	return this.blockNumber;
+mocketh.prototype.getBlockNumber = function (cb) {
+	if (cb && typeof cb === 'function')
+		cb(null, this.blockNumber);
+	else return this.blockNumber;
 }
 
 mocketh.prototype.getBlock = function (hashOrNumber, cb) {
@@ -150,6 +153,10 @@ mocketh.prototype.filter = function (type) {
 			this.filterCallback = null;
 		}.bind(this)
 	};
+}
+
+mocketh.prototype.stop = function(number, cb) {
+	clearInterval(this.blockInterval);
 }
 
 mocketh.prototype.onBlock = function (number, cb) {
