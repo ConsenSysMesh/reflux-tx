@@ -1,81 +1,87 @@
 import _ from 'lodash';
 import React  from 'react/addons';
 import { Component }  from 'react/addons';
-import TXStore from '../Store';
 import Reflux from 'reflux';
 import ReactMixin from 'react-mixin';
 import shallowEqual from 'react-pure-render/shallowEqual';
 import assign from 'object-assign';
 
-// Keys that transform into 
-var keyFields = {'txs': ['objects', 'info', 'receipts'], 'pending': ['objects', 'info'], 'unconfirmed': ['objects', 'info', 'receipts']};
-var mapOverride = {
-  'objects': 'data',
-  'receipts': 'receipt',
-  'info': 'info'
+import TXStore from '../Store';
+import utils from '../utils';
+
+// getInitialState
+var baseState = {
+  pending: [],
+  received: [],
+  dropped: [],
+  failed: [],
+  confirmed: [],
+
+  timestamp: 0,
+  blockNumber: 0,
+  blockHash: ''
 };
 
 class TXComponent extends Component {
   constructor(props, context) {
       super(props, context);
-      this.state = {
-        pending: [],
-        unconfirmed: [],
-        txs: [],
-        timestamp: 0,
-        blockNumber: 0
-      };
+      this.state = _.cloneDeep(baseState);
   }
 
-  // Filter out the store's state to only what the child components care about
+  // State is the txstore state, props are the nextProps or current props
   parseStore(state, props) {
     if (typeof props === 'undefined')
       props = this.props;
 
-    var filter = this.props.filter || {};
-    var filteredState = {};
-    var didUpdate = false;
+    var filter = _.get(this.props, 'filter', {});
 
-    props.keys.forEach(function(key) {
-      if (!keyFields.hasOwnProperty(key)) {
-        filteredState[key] = state[key];
-        return;
-      }
+    // Updated state
+    var filteredState = _.cloneDeep(baseState);
 
-      var fields = keyFields[key];
+    var accounts = _.get(this.props, 'account', []);
+    var types = _.get(this.props, 'keys', []);
 
-      var vals = state[key][state.genesis] || [];
+    accounts = utils.toArr(accounts);
 
-      // Match component's filter
-      filteredState[key] = _.filter(vals.map(function(hash) {
-        return state.info[hash];
-      }), filter).map(function(info) { return info.hash; }).filter(function(hash) {
-        // If all required fields exist
-        return fields.reduce(function(truth, field) {
-          return truth && (state[field].hasOwnProperty(hash));
-        }, true);
-      }).map(function(hash) {
-        // return the fields
-        return fields.reduce(function(obj, field) {
-          obj[mapOverride[field]] = state[field][hash];
-          return obj;
-        }, {});
+    if (!accounts.length)
+      accounts = Object.keys(_.get(state, 'accounts', {}));
+
+    accounts.filter(function(account) {
+      return account !== 'children';
+    }).forEach(function(account) {
+      types.forEach(function(type) {
+        var typeStates = _.get(state.accounts, [account, type], {
+          nonces: []
+        });
+
+        var filteredTypeStates = _.filter(typeStates.nonces.reduce(function(a, nonce) {
+          return a.concat(utils.toArr(typeStates[nonce]));
+        }, []).map(function(hash) {
+          return state.info[hash];
+        }), filter).map(function(info) {
+          return {
+            info: info,
+            data: state.objects[info.hash],
+            receipt: _.get(state.receipts, info.hash, null)
+          };
+        });
+
+        filteredState[type] = filteredState[type].concat(filteredTypeStates);
       });
-      didUpdate = didUpdate || filteredState[key].length > 0;
     });
 
-    if (didUpdate && state.hasOwnProperty('blockNumber'))
-      filteredState.blockNumber = state.blockNumber;
+    ['blockNumber', 'blockHash', 'timestamp'].forEach(function(key) {
+      filteredState[key] = state[key];
+    });
 
-    if (didUpdate && state.hasOwnProperty('timestamp'))
-      filteredState.timestamp = state.timestamp;
 
     this.setState(filteredState);
   }
+
   componentDidMount() {
-    var cb = this.parseStore;
-    this.listenTo(TXStore, cb, cb);
+    this.listenTo(TXStore, this.parseStore);
   }
+
   // Don't rerender children without change in props or state
   shouldComponentUpdate(nextProps, nextState) {
     var statesEqual = true;
@@ -84,11 +90,14 @@ class TXComponent extends Component {
     }
     return !shallowEqual(this.props, nextProps) || !statesEqual;
   }
+
+  // Ensure the whole state is parsed if component is mounted after state loaded or when props change
   componentWillReceiveProps(nextProps) {
     this.parseStore(TXStore.state, nextProps);
   }
+
   // Pass on state as requested from this.props.keys
-  passTXs(child) {
+  passState(child) {
     var state = this.state;
     var keys = this.props.keys.concat(['blockNumber', 'timestamp']);
 
@@ -107,17 +116,17 @@ class TXComponent extends Component {
     if (!children) return null;
     if (children.constructor !== Array) {
       const child = children;
-      return this.passTXs(child)
+      return this.passState(child)
     } else {
       return (
           <span>
-            {React.Children.map(children, this.passTXs)}
+            {React.Children.map(children, this.passState)}
           </span>
           );
     }
   }
 }
 
-TXComponent.defaultProps = { filter: {}, keys: ['pending', 'unconfirmed'] };
+TXComponent.defaultProps = { filter: {}, keys: ['pending', 'received', 'dropped', 'failed', 'confirmed']} ;
 ReactMixin(TXComponent.prototype, Reflux.ListenerMixin);
 export default TXComponent;
