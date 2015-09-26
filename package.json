@@ -2,7 +2,7 @@
   "name": "reflux-tx",
   "version": "0.0.3",
   "description": "Reflux store and component wrapper to store and retrieve ethereum transactions and related info",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/consensys/reflux-tx.git"
@@ -36,6 +36,7 @@
     "babel-core": "^4.7.16",
     "babel-loader": "^4.2.0",
     "babel-runtime": "^5.1.11",
+    "browserify": "^11.2.0",
     "chai": "^3.2.0",
     "exports-loader": "^0.6.2",
     "mocha": "^2.3.2",
@@ -43,12 +44,11 @@
     "node-jsdom": "^3.1.5",
     "sinon": "^1.16.1",
     "sinon-chai": "^2.8.0",
-    "webpack": "^1.7.3"
+    "uglify-js": "^2.4.24"
   },
   "scripts": {
-    "build:js": "webpack && webpack --config webpack.config.min.js",
     "prepublish": "babel -d ./lib ./src/",
-    "postpublish": "rm -r ./lib",
+    "build": "./node_modules/.bin/browserify -s refluxTX -e ./lib/index.js | tee dist/refluxTX.js | ./node_modules/.bin/uglifyjs -m > dist/refluxTX.min.js",
     "test": "mocha --opts ./test/mocha.opts --compilers js:babel/register --recursive test/*.jsx"
   }
 }
