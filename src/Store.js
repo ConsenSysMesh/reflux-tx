@@ -15,6 +15,7 @@ var baseState = {
     // Current blockNumber (while pending.length && unconfirmed.length)
     blockNumber: 0,
     timestamp: 0, 
+    blockHash: '',
 
     // Arrays of tx hashes (chronological) mapped by genesis id
     txs: {},      // (persists)
@@ -68,7 +69,7 @@ export default Reflux.createStore({
   // Load transactions and pending hashes
   loadStorage(cb) {
     localforage.getItem(this.state.genesis).then(function(storage) {
-      this.setState(JSON.parse(storage));
+      this.setState(_.assign(_.cloneDeep(baseState), JSON.parse(storage), {genesis: this.state.genesis}));
       cb();
     }.bind(this));
   },
@@ -142,7 +143,6 @@ export default Reflux.createStore({
       }.bind(this));
 
       this.saveStorage();
-      //TODO: console.log('testing async: line after this.saveStorage()');
 
     }.bind(this));
   },
@@ -535,7 +535,7 @@ export default Reflux.createStore({
       var reloadTxs = pending;
 
       // If a fork happens, send trigger event for anyone subscribed and re-load tx objects & receipts pending, dropped, and received
-      if (this.prevBlock && this.prevBlock.blockHash !== block.parentHash) {
+      if (this.prevBlock && this.prevBlock.hash !== block.parentHash) {
         reloadTxs = reloadTxs.concat(confirming);
         this.setState({lastFork: block.number});
       }
@@ -570,7 +570,6 @@ export default Reflux.createStore({
     }.bind(this), {});
 
     localforage.setItem(this.state.genesis, JSON.stringify(saveState), function(err, v) {
-      // TODO: console.log('testing async: storage save completed');
       if (err) throw err;
     });
   },
