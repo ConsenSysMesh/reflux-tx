@@ -1,7 +1,7 @@
 reflux-tx
 ============
 
-Reflux store & higher order component for monitoring Ethereum transactions in real-time
+Reflux store & higher order component for monitoring Ethereum transactions in real-time.
 
 #### Features
 
@@ -13,7 +13,7 @@ Reflux store & higher order component for monitoring Ethereum transactions in re
 * Multiple chain support
 
 
-### Possible TX States
+### TX States
 
 
   ![states](https://raw.githubusercontent.com/ConsenSys/reflux-tx/enhance/docs/tx_states.png)
@@ -36,7 +36,12 @@ Reflux store & higher order component for monitoring Ethereum transactions in re
 
 `npm install reflux-tx`
 
-Also, webpack requires these config additions to use localforage:
+or for the browserified version which exposes global `refluxTX`:
+
+`<script type='text/javascript' src='./dist/refluxTX.min.js'></script>`
+
+
+If using with webpack, you'll need these config additions to support localforage:
 
 ```
 	module: {
@@ -75,8 +80,8 @@ Example:
 ```
 TXActions.add({
 	hash: '0x30f42ba1f7d816d850fd172e128ffbacee7564e0cb41cc27c1e9af743aace6bc',
-	type: 'deposit',
-	parent: '0x26ac60acb581516b175010730a2bcee041bb0099'
+	txType: 'deposit',
+	parentAddress: '0x26ac60acb581516b175010730a2bcee041bb0099'
 });
 ```
 
@@ -127,3 +132,4 @@ console.log(this.props.blockNumber)
 ### Notes
 
 reflux-tx will only subscribe to new block info when it's needed for tx confirmations. For that reason, a component's block properties (blockNumber, timestamp, blockHash) will update only while you have pending or received transactions matching the wrapping TXComponent's `filter` and `keys`.
+
