@@ -20,7 +20,7 @@ var mocketh = function(chainName, blockTime) {
 	this.blockHashMap = {};
 	this.blockCallbacks = [];
 	this.blocks = {};
-	this.blocks[this.block.blockHash] = this.block;
+	this.blocks[this.block.hash] = this.block;
 	this.filterCallback = null;
 
 	this.getTransactionReceipt.request = this.request('getTransactionReceipt');
@@ -52,7 +52,7 @@ mocketh.prototype.incChain = function() {
 		this.chainId = this.chain.forks[this.blockNumber];
 
 	this.block = this.Block(this.chainId, this.blockNumber);
-	this.blocks[this.block.blockHash] = this.block;
+	this.blocks[this.block.hash] = this.block;
 
 	var hash = this.blockHash(this.chainId, this.blockNumber);
 	this.blockHashMap[hash] = this.blockNumber;
@@ -70,7 +70,7 @@ mocketh.prototype.Block = function (chainId, number) {
 	return {
 		number: number,
 		timestamp: Math.floor(new Date().getTime() / 1000),
-		blockHash: this.blockHash(chainId, number),
+		hash: this.blockHash(chainId, number),
 		parentHash: this.blockHash(chainId, number - 1)
 	};
 }

@@ -62,14 +62,14 @@ describe('Mocketh', () => {
                 assert.isNull(err);
                 assert.isObject(block);
                 assert.isNumber(block.timestamp);
-                assert.isString(block.blockHash);
+                assert.isString(block.hash);
                 assert.isString(block.parentHash);
-                assert.notEqual(block.parentHash, block.blockHash);
-                web3.eth.getBlock(block.blockHash, function(err, blockByHash) {
+                assert.notEqual(block.parentHash, block.hash);
+                web3.eth.getBlock(block.hash, function(err, blockByHash) {
                     assert.isNull(err);
                     assert.deepEqual(blockByHash, block);
                     web3.eth.getBlock(2, function(err, parentBlock) {
-                        assert.deepEqual(parentBlock.blockHash, block.parentHash);
+                        assert.deepEqual(parentBlock.hash, block.parentHash);
                         done();
                     });
                 })
@@ -141,7 +141,7 @@ describe('Mocketh', () => {
                 web3.eth.getBlock(5, function(err, blockFive) {
                     web3.eth.onBlock(6, function() {
                         web3.eth.getBlock(6, function(err, blockSix) {
-                            assert.notEqual(blockSix.parentHash, blockFive.blockHash);
+                            assert.notEqual(blockSix.parentHash, blockFive.hash);
                             done();
                         });
                     })
