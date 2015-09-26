@@ -46,5 +46,46 @@
       }
     ]
 
+  },
+  "GC": {
+    "length": 40,
+    "txs": [
+      {
+        "nonce": 0,
+        "reception": {
+          "0": 2
+        }
+      },
+      {
+        "nonce": 0
+      },
+      {
+        "nonce": 1,
+        "reception": {
+          "0": 3
+        }
+      },
+      {
+        "nonce": 1
+      },
+      {
+        "nonce": 2,
+        "reception": {
+          "0": 4
+        }
+      },
+      {
+        "nonce": 2
+      },
+      {
+        "nonce": 3,
+        "reception": {
+          "0": 5
+        }
+      },
+      {
+        "nonce": 3
+      }
+    ]
   }
 }

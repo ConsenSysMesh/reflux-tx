@@ -86,7 +86,7 @@ mocketh.prototype.Transaction = function(spec) {
 	return {
 		hash: web3.sha3(JSON.stringify(spec)),
 		nonce: spec.nonce,
-		from: this.getAddress(spec.from)
+		from: this.getAddress(spec.from || 0)
 	};
 }
 

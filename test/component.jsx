@@ -144,7 +144,6 @@ describe('TXComponent', () => {
 				});
 			});
 		});
-
 	});
 
 	describe('TX Overwrite', () => {
@@ -164,7 +163,7 @@ describe('TXComponent', () => {
 		});
 
 		it('tx0 received, tx1 dropped', function(done) {
-			web3.eth.onBlock(3, function() {
+			web3.eth.onBlock(2, function() {
 				validateState(testComponent, {
 					received: [txHashes[0]],
 					dropped: [txHashes[1]]
@@ -174,7 +173,7 @@ describe('TXComponent', () => {
 		});
 
 		it('tx0 confirmed, tx1 failed', function(done) {
-			web3.eth.onBlock(10, function() {
+			web3.eth.onBlock(8, function() {
 				validateState(testComponent, {
 					confirmed: [txHashes[0]],
 					failed: [txHashes[1]]
@@ -182,6 +181,96 @@ describe('TXComponent', () => {
 				done();
 			});
 		});
+	});
+	describe('Garbage Collection', () => {
+		var txs, txHashes;
 
+		before(() => {
+			setup('GC');
+			txs = web3.eth.chain.txs;
+			txHashes = txs.map(function(tx) {
+				return getHash(tx);
+			});
+			TXActions.connect({confirmCount: 2, bufferSize: 2});
+		});
+		after(() => {
+			web3.eth.stop();
+		});
+
+		it('txs pending', function(done) {
+			validateState(testComponent, {
+				pending: txHashes
+			});
+			done();
+		});
+
+		it('tx0 received, tx1 dropped', function(done) {
+			web3.eth.onBlock(2, function() {
+				validateState(testComponent, {
+					received: [txHashes[0]],
+					dropped: [txHashes[1]],
+					pending: txHashes.slice(2)
+				});
+				done();
+			});
+		});
+
+		it('tx2 received, tx3 dropped', function(done) {
+			web3.eth.onBlock(3, function() {
+				validateState(testComponent, {
+					received: [txHashes[0], txHashes[2]],
+					dropped: [txHashes[1], txHashes[3]],
+					pending: txHashes.slice(4)
+				});
+				done();
+			});
+		});
+
+		it('tx4 received, tx5 dropped', function(done) {
+			web3.eth.onBlock(4, function() {
+				validateState(testComponent, {
+					received: [txHashes[0], txHashes[2], txHashes[4]],
+					dropped: [txHashes[1], txHashes[3], txHashes[5]],
+					pending: txHashes.slice(6)
+				});
+				done();
+			});
+		});
+
+		it('tx6 received, tx7 dropped, tx0 confirmed, tx1 failed', function(done) {
+			web3.eth.onBlock(5, function() {
+				validateState(testComponent, {
+					received: [txHashes[2], txHashes[4], txHashes[6]],
+					dropped: [txHashes[3], txHashes[5], txHashes[7]],
+					failed: [txHashes[1]],
+					confirmed: [txHashes[0]]
+				});
+				done()
+			});
+		});
+
+		it('tx 2 confirmed, tx3 failed, GC tx0 & tx1', function(done) {
+			web3.eth.onBlock(6, function() {
+				validateState(testComponent, {
+					received: [txHashes[4], txHashes[6]],
+					dropped: [txHashes[5], txHashes[7]],
+					failed: [txHashes[3]],
+					confirmed: [txHashes[2]]
+				});
+				done();
+			});
+		});
+
+		it('tx 4 confirmed, tx5 failed, GC tx2 & tx3', function(done) {
+			web3.eth.onBlock(7, function() {
+				validateState(testComponent, {
+					received: [txHashes[6]],
+					dropped: [txHashes[7]],
+					failed: [txHashes[5]],
+					confirmed: [txHashes[4]]
+				});
+				done();
+			});
+		});
 	});
 });

@@ -106,7 +106,7 @@ export default Reflux.createStore({
 
           if (number - receipt.blockNumber > this.confirmCount) {
             this.updateState(stateObj, 'confirmed', false);
-            if (stateObj.nonce > latestConfirmed)
+            if (!latestConfirmed || stateObj.nonce > latestConfirmed)
               latestConfirmed = stateObj.nonce;
           } else {
             if (!latestReceived || stateObj.nonce > latestReceived)
@@ -142,7 +142,7 @@ export default Reflux.createStore({
 
       }.bind(this));
 
-      this.saveStorage();
+      this.garbageCollect();
 
     }.bind(this));
   },
@@ -185,7 +185,7 @@ export default Reflux.createStore({
       throw new Error(stateObj.type + ' state at nonce ' + nonce + ' not cleaned up correctly for account ' + stateObj.account);
 
     if (nonce !== stateObj.nonce)
-      nonces.splice(i, 0, stateObj.nonce);
+      nonces.splice(i + 1, 0, stateObj.nonce);
 
     _.set(accounts, [stateObj.account, stateObj.type, 'nonces'], nonces);
     _.set(accounts, [stateObj.account, stateObj.type, stateObj.nonce.toString()], typeState);
@@ -466,6 +466,30 @@ export default Reflux.createStore({
     } catch (e) {
       return [];
     }
+  },
+
+  // Garbage collect the earliest stored confirmed & failed txs over quota
+  garbageCollect() {
+    var accountState = this.state.accounts;
+
+    // Run GC for each stored account
+    Object.keys(this.state.accounts).forEach(function(account) {
+      var confirmed = this.getTxStates(['confirmed'], account);
+      var failed = this.getTxStates(['failed'], account);
+      while (confirmed.length + failed.length > this.bufferSize) {
+        var lastConfirmed = _.get(confirmed[0], 'nonce', -1);
+        var lastFailed = _.get(failed[0], 'nonce', -1);
+
+        var removeFromArray = confirmed;
+        if (lastFailed >= 0 && lastFailed < lastConfirmed)
+          removeFromArray = failed;
+
+        var elToRemove = removeFromArray.shift();
+        accountState = this.delTxState(accountState, elToRemove, false);
+      }
+    }.bind(this));
+    this.setState({accounts: accountState});
+    this.saveStorage();
   },
 
   // Clear out buffer if too big
