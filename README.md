@@ -66,7 +66,7 @@ Field Name  | Description | Default
 ------------- | ------------- | ------------
 provider  | web3 http provider | assumes already set
 confirmCount  | Number of blocks before a tx is sufficiently confirmed | 12
-bufferSize  | Max number of sufficiently confirmed transactions to keep in storage | 100
+bufferSize  | Max number of resolved transactions (failed + confirmed) to keep in localstorage per-account | 100
 
 Example:
 
@@ -129,7 +129,9 @@ console.log(this.props.blockNumber)
 30000
 ```
 
+
 ### Notes
 
 reflux-tx will only subscribe to new block info when it's needed for tx confirmations. For that reason, a component's block properties (blockNumber, timestamp, blockHash) will update only while you have pending or received transactions matching the wrapping TXComponent's `filter` and `keys`.
+
 
