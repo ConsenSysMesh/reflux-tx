@@ -492,47 +492,6 @@ export default Reflux.createStore({
     this.saveStorage();
   },
 
-  // Clear out buffer if too big
-  removeExcessiveTXs() {
-    var _txs = this.state.txs;
-    var _info = this.state.info;
-    var _genesis = this.state.genesis;
-
-    var txs = _.get(_txs, _genesis, []);
-    var unconfirmed = _.get(this.state.confirmed, _genesis, []);
-    var pending = _.get(this.state.pending, _genesis, []);
-
-    var nonconfirmedObject = pending.concat(unconfirmed).reduce(function(o, v, i) {
-      o[v] = true;
-      return o;
-    }, {});
-
-    //var confirmed = new Set(_.difference(txs, unconfirmed.concat(pending)));
-    var confirmed = txs.filter(function(hash) {
-      return !(hash in nonconfirmedObject);
-    });
-
-    var confirmedObject = confirmed.reduce(function(o, v, i) {
-      o[v] = true;
-      return o;
-    }, {});
-
-    // Start with earliest-added tx
-    var txIndex = 0;
-    while (confirmed.length > this.bufferSize && txIndex < txs.length) {
-      var tx = txs[txIndex];
-      if (tx in confirmedObject) {
-        confirmed.pop();
-        txs.splice(txIndex, 1);
-        delete _info[tx];
-      }
-      txIndex++;
-    }
-
-    if (txIndex)
-      this.setState({info: _info, txs: _.set(_txs, _genesis, txs)});
-  },
-
   // Get block zero hash
   setGenesis(cb) {
     web3.eth.getBlock(0, function(err, block) {
@@ -672,9 +631,6 @@ export default Reflux.createStore({
     }, {});
 
     // Remove oldest, confirmed txs from state.txs when it exceeds bufferSize (synchronous)
-    // TODO: reimplement this for genesis-account based tx storage
-    // this.removeExcessiveTXs();
-
     this.setState({info: _.assign(this.state.info, newInfo)});
 
     // Get new transaction objects from web3, then load receipts (if the hashes are new...otherwise don't waste time)
