@@ -18351,8 +18351,8 @@ exports.isBuffer = isBuffer;
 function objectToString(o) {
   return Object.prototype.toString.call(o);
 }
-}).call(this,{"isBuffer":require("/Users/ck/dev/consensys/test-reflux-tx/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
-},{"/Users/ck/dev/consensys/test-reflux-tx/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":154}],164:[function(require,module,exports){
+}).call(this,{"isBuffer":require("/Users/ck/dev/consensys/noncense/persona-integration/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
+},{"/Users/ck/dev/consensys/noncense/persona-integration/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":154}],164:[function(require,module,exports){
 (function (process){
 'use strict';
 module.exports = nextTick;
