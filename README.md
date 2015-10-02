@@ -129,9 +129,12 @@ console.log(this.props.blockNumber)
 30000
 ```
 
+### Example
+For another example check out [reflux-tx-example](https://github.com/ckeenan/reflux-tx-example)
 
 ### Notes
 
 reflux-tx will only subscribe to new block info when it's needed for tx confirmations. For that reason, a component's block properties (blockNumber, timestamp, blockHash) will update only while you have pending or received transactions matching the wrapping TXComponent's `filter` and `keys`.
+
 
 
