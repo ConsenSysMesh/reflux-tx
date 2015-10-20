@@ -3,7 +3,6 @@ import React  from 'react/addons';
 import { Component }  from 'react/addons';
 import Reflux from 'reflux';
 import ReactMixin from 'react-mixin';
-import shallowEqual from 'react-pure-render/shallowEqual';
 import assign from 'object-assign';
 
 import TXStore from '../Store';
@@ -80,20 +79,18 @@ class TXComponent extends Component {
 
   componentDidMount() {
     this.listenTo(TXStore, this.parseStore);
+    this.parseStore(TXStore.state, this.props);
+  }
+
+  // Ensure the whole state is parsed if component is mounted after state loaded or when props change
+  componentDidUpdate(oldProps, oldState) {
+    this.parseStore(TXStore.state, this.props);
   }
 
   // Don't rerender children without change in props or state
   shouldComponentUpdate(nextProps, nextState) {
-    var statesEqual = true;
-    for (var key in nextState) {
-      statesEqual = statesEqual && shallowEqual(nextState[key], this.state[key]);
-    }
-    return !shallowEqual(this.props, nextProps) || !statesEqual;
-  }
-
-  // Ensure the whole state is parsed if component is mounted after state loaded or when props change
-  componentWillReceiveProps(nextProps) {
-    this.parseStore(TXStore.state, nextProps);
+    return (!_.isEqual(this.props, nextProps) ||
+            !_.isEqual(this.state, nextState));
   }
 
   // Pass on state as requested from this.props.keys
