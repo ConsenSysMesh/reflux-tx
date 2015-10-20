@@ -246,7 +246,6 @@ export default Reflux.createStore({
     if (stateObj.type === 'confirmed' || stateObj.type === 'failed')
       throw new Error('Transaction is already in state ' + stateObj.type + '. Cannot change state');
 
-    //console.log('UPDATING ', stateObj.type, ' => ', newStateType, stateObj.hash);
     var newAccountStates = this.delTxState(this.state.accounts, stateObj, save);
     newAccountStates = this.addTxState(newAccountStates, _.set(stateObj, 'type', newStateType), save);
 
@@ -402,7 +401,6 @@ export default Reflux.createStore({
           if (stateObj.hasOwnProperty('type'))
             this.setState({accounts: this.delTxState(this.state.accounts, stateObj, false)});   // saved to ls after loadTxData completes
           errors.push(_.merge(stateObj, this.state.info[hash]));
-          console.log('deleting info');
           delete this.state.info[hash];
           this.setState({info: this.state.info});
 
@@ -534,8 +532,10 @@ export default Reflux.createStore({
   },
 
   stopWatching() {
-    this.filter.stopWatching();
-    this.filter = null;
+    if (this.filter) {
+      this.filter.stopWatching();
+      this.filter = null;
+    }
   },
 
   // sets the eth filter to watch latest blocks
@@ -703,8 +703,10 @@ export default Reflux.createStore({
 
       web3.eth.getBlock(blockHash, function(err, res) {
         if (err) txStore.setState({error: err});
-        if (res) callback(false);
-        else callback(true);
+        if (res) {
+          txStore.recordBlock(res.number)
+          callback(false);
+        } else callback(true);
       });
     }
 
