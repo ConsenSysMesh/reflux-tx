@@ -76,8 +76,10 @@ describe('TXComponent', () => {
 
 		it('tx pending', (done) => {
 			web3.eth.onBlock(1, function() {
-				validateState(testComponent, ['pending']);
-				done();
+				setTimeout(function() {
+					validateState(testComponent, ['pending']);
+					done();
+				}, 200)
 			});
 		});
 		it('tx received', (done) => {
