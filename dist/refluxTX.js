@@ -6,7 +6,7 @@ var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["defau
 var Reflux = _interopRequire(require("reflux"));
 
 module.exports = Reflux.createActions(["add", "clear", "clearAll", "clearPending", "connect", "remove"]);
-},{"reflux":376}],2:[function(require,module,exports){
+},{"reflux":381}],2:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -28,6 +28,7 @@ var TXActions = _interopRequire(require("./Actions"));
 var utils = _interopRequire(require("./utils"));
 
 var baseState = {
+  nonce: 0,
   error: null,
   // Genesis identifier (getBlock(0).hash)
   genesis: "",
@@ -71,6 +72,7 @@ module.exports = Reflux.createStore({
 
   init: function init() {
     // setup localforage driver
+    console.log("init");
     localforage.config({
       driver: localforage.WEBSQL, // Force WebSQL; same as using setDriver()
       name: "web3Store",
@@ -85,8 +87,15 @@ module.exports = Reflux.createStore({
     return _.cloneDeep(baseState);
   },
 
+  forceUpdate: function forceUpdate() {
+    this.setState({
+      nonce: this.state.nonce + 1
+    });
+  },
+
   // Load transactions and pending hashes
   loadStorage: function loadStorage(cb) {
+    console.log("loadStorage");
     localforage.getItem(this.state.genesis).then((function (storage) {
       this.setState(_.assign(_.cloneDeep(baseState), JSON.parse(storage), { genesis: this.state.genesis }));
       cb();
@@ -98,6 +107,7 @@ module.exports = Reflux.createStore({
   checkConfirms: function checkConfirms() {
     var blockNumber = arguments[0] === undefined ? null : arguments[0];
 
+    console.log("checkConfirms");
     var txStore = this;
     function getBlockNumber(number, cb) {
       if (number) cb(number);else txStore.recordBlock(null, function (err, block) {
@@ -165,6 +175,7 @@ module.exports = Reflux.createStore({
   isValidStateObj: function isValidStateObj(stateObj) {
     var extras = arguments[1] === undefined ? [] : arguments[1];
 
+    console.log("isValidStateObj");
     return ["hash", "account", "nonce", "type"].concat(extras).every(function (prop) {
       return stateObj.hasOwnProperty(prop);
     });
@@ -174,6 +185,7 @@ module.exports = Reflux.createStore({
   addTxState: function addTxState(accounts, stateObj) {
     var save = arguments[2] === undefined ? true : arguments[2];
 
+    console.log("addTxState");
     // Ensure correct properties available
     if (!this.isValidStateObj(stateObj)) throw new Error("invalid stateObject " + JSON.stringify(stateObj));
 
@@ -247,6 +259,7 @@ module.exports = Reflux.createStore({
   updateState: function updateState(stateObj, newStateType) {
     var save = arguments[2] === undefined ? true : arguments[2];
 
+    console.log("updateState");
     if (!this.isValidStateObj(stateObj)) throw new Error("Invalid state object: " + stateObj);
 
     // When updating to pending, check if there are confirmed w a higher nonce
@@ -256,7 +269,6 @@ module.exports = Reflux.createStore({
       return;
     }if (stateObj.type === "confirmed" || stateObj.type === "failed") throw new Error("Transaction is already in state " + stateObj.type + ". Cannot change state");
 
-    //console.log('UPDATING ', stateObj.type, ' => ', newStateType, stateObj.hash);
     var newAccountStates = this.delTxState(this.state.accounts, stateObj, save);
     newAccountStates = this.addTxState(newAccountStates, _.set(stateObj, "type", newStateType), save);
 
@@ -264,6 +276,7 @@ module.exports = Reflux.createStore({
   },
 
   getHighestNonce: function getHighestNonce(account, type) {
+    console.log("getHighestNonce");
     var hash;
     var nonces = _.get(this.state.accounts, [account, type, "nonces"], []);
 
@@ -309,6 +322,7 @@ module.exports = Reflux.createStore({
     var types = arguments[0] === undefined ? ["pending"] : arguments[0];
     var accounts = arguments[1] === undefined ? null : arguments[1];
 
+    console.log("getTxStates");
     var _accounts = this.state.accounts;
 
     var results = [];
@@ -352,6 +366,7 @@ module.exports = Reflux.createStore({
     var methods = arguments[1] === undefined ? ["receipt", "object"] : arguments[1];
     var callback = arguments[2] === undefined ? null : arguments[2];
 
+    console.log("loadTxData");
     var txs = utils.toArr(payload);
 
     // If no txs requested, default to all pending & received & dropped for all accounts
@@ -409,7 +424,6 @@ module.exports = Reflux.createStore({
           // stateObj.type _could_ be overwritten here by state.info[hash].type...
           if (stateObj.hasOwnProperty("type")) this.setState({ accounts: this.delTxState(this.state.accounts, stateObj, false) }); // saved to ls after loadTxData completes
           errors.push(_.merge(stateObj, this.state.info[hash]));
-          console.log("deleting info");
           delete this.state.info[hash];
           this.setState({ info: this.state.info });
         } else errors.push(stateObj); // if txinfo doesn't exist, why are we looking at this?
@@ -468,6 +482,7 @@ module.exports = Reflux.createStore({
 
   // Garbage collect the earliest stored confirmed & failed txs over quota
   garbageCollect: function garbageCollect() {
+    console.log("garbageCollect");
     var accountState = this.state.accounts;
 
     // Run GC for each stored account
@@ -491,6 +506,7 @@ module.exports = Reflux.createStore({
 
   // Get block zero hash
   setGenesis: function setGenesis(cb) {
+    console.log("setGenesis");
     web3.eth.getBlock(0, (function (err, block) {
       if (err) return cb(err);
       this.setState({ genesis: block.hash });
@@ -501,7 +517,7 @@ module.exports = Reflux.createStore({
   // On each block, loadtxdata for pending, if there's a fork reload pending, received, & dropped
   // TODO: add a timeout for unreceived pending?
   newBlock: function newBlock(err, hash) {
-
+    console.log("newBlock");
     this.recordBlock(hash, (function (err, block) {
       if (err) {
         this.setState({ error: err });
@@ -523,27 +539,37 @@ module.exports = Reflux.createStore({
       this.prevBlock = block;
 
       // Stop watching when no confirming or pending txs left
+      console.log("almost done with newBlock");
       if (!pending.length && !confirming.length) this.stopWatching();else this.loadTxData(reloadTxs, ["receipt"], (function (err) {
         this.checkConfirms(block.number);
+        console.log("done with newBlock");
       }).bind(this));
     }).bind(this));
   },
 
   stopWatching: function stopWatching() {
-    this.filter.stopWatching();
-    this.filter = null;
+    console.log("stopWatching");
+    if (this.filter) {
+      this.filter.stopWatching();
+      this.filter = null;
+    }
   },
 
   // sets the eth filter to watch latest blocks
   // called in onAdd & onConnect (when any pending or unconfirmed)
   startWatching: function startWatching() {
+    console.log("startWatching");
     if (this.filter) {
-      return;
-    }this.filter = web3.eth.filter("latest");
-    this.filter.watch(this.newBlock);
+      this.newBlock(null);
+    } else {
+      this.filter = web3.eth.filter("latest");
+      this.filter.watch(this.newBlock);
+      this.newBlock(null);
+    }
   },
 
   saveStorage: function saveStorage() {
+    console.log("saveStorage");
     var saveState = ["accounts", "info", "objects", "receipts"].reduce((function (o, v) {
       o[v] = this.state[v];
       return o;
@@ -611,6 +637,7 @@ module.exports = Reflux.createStore({
 
   // For each txInfo, check if the hash exists in txInfo already, if it does, overwrite txInfo but don't append to tx array
   onAdd: function onAdd(payload, cb) {
+    console.log("onAdd");
     // Turn params into array if not already, filter out any not including hash property
     payload = utils.toArr(payload).filter(function (el) {
       return el.hasOwnProperty("hash");
@@ -633,16 +660,19 @@ module.exports = Reflux.createStore({
     this.setState({ info: _.assign(this.state.info, newInfo) });
 
     // Get new transaction objects from web3, then load receipts (if the hashes are new...otherwise don't waste time)
+    console.log("loading tx data", newHashes.length);
     if (newHashes.length) this.loadTxData(newHashes, ["object"], (function (err) {
       if (err) cb(err);
       // if no cb error, then we can safeuly assume newHashes have txObjects in state
       else {
+        console.log("loading tx receipts");
         // Must load receipts using whole stateObjects so the new states can be updated correctly
         this.loadTxData(newHashes.map((function (hash) {
           return this.getTxState(hash);
         }).bind(this)), ["receipt"], (function (err) {
           this.checkConfirms(); // Also records latest block
           this.startWatching();
+          this.forceUpdate();
           if (cb && typeof cb === "function") cb();
         }).bind(this));
       }
@@ -651,6 +681,7 @@ module.exports = Reflux.createStore({
 
   // Records blockNum or latest blockNumber & it's timestamp & hash as latest known block
   recordBlock: function recordBlock(blockId, callback) {
+    console.log("recordBlock");
 
     function getBlockNumber(cb) {
       if (blockId) {
@@ -683,6 +714,7 @@ module.exports = Reflux.createStore({
   }
   */
   onConnect: function onConnect(opts) {
+    console.log("onConnect");
     if (_.has(opts, "provider")) web3.setProvider(new web3.providers.HttpProvider(opts.provider));
     if (_.has(opts, "confirmCount")) this.confirmCount = opts.confirmCount;
     if (_.has(opts, "bufferSize")) this.bufferSize = opts.bufferSize;
@@ -736,7 +768,7 @@ module.exports = Reflux.createStore({
     });
   }
 });
-},{"./Actions":1,"./utils":5,"localforage":180,"lodash":182,"react/addons":187,"reflux":376,"reflux-state-mixin":359,"web3":379}],3:[function(require,module,exports){
+},{"./Actions":1,"./utils":5,"localforage":180,"lodash":182,"react/addons":187,"reflux":381,"reflux-state-mixin":362,"web3":384}],3:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -796,6 +828,7 @@ var TXComponent = (function (_Component) {
       // State is the txstore state, props are the nextProps or current props
 
       value: function parseStore(state, props) {
+        console.log("parseStore", state, props, this.props);
         if (typeof props === "undefined") props = this.props;
 
         var filter = _.get(this.props, "filter", {});
@@ -843,14 +876,18 @@ var TXComponent = (function (_Component) {
     },
     componentDidMount: {
       value: function componentDidMount() {
+        console.log("TXCOMPONENT DID MOUNT");
+        console.log("TXCOMPONENT DID MOUNT");
+        console.log("TXCOMPONENT DID MOUNT");
         this.listenTo(TXStore, this.parseStore);
         this.parseStore(TXStore.state, this.props);
       }
     },
     componentDidUpdate: {
-      value: function componentDidUpdate(oldProps, oldState) {
-        if (this.props.filter.hasOwnProperty("root")) console.log("TXComponent.componentDidUpdate", oldState, this.state);
 
+      // Ensure the whole state is parsed if component is mounted after state loaded or when props change
+
+      value: function componentDidUpdate(oldProps, oldState) {
         this.parseStore(TXStore.state, this.props);
       }
     },
@@ -859,23 +896,11 @@ var TXComponent = (function (_Component) {
       // Don't rerender children without change in props or state
 
       value: function shouldComponentUpdate(nextProps, nextState) {
-        var result = !_.isEqual(this.props, nextProps) || !_.isEqual(this.state, nextState);
-
-        if (result) console.log("TXCOMPONENT.updating");
-
-        return result;
+        console.log("shouldComponentUpdate", nextProps, nextState);
+        return !_.isEqual(this.props, nextProps) || !_.isEqual(this.state, nextState);
       }
     },
     passState: {
-
-      // Ensure the whole state is parsed if component is mounted after state loaded or when props change
-      /*
-      componentWillReceiveProps(nextProps, nextState) {
-        if (this.props.filter.hasOwnProperty('root'))
-          console.log('TXComponent.componentWillReceiveProps', this.state, nextState)
-        this.parseStore(TXStore.state, nextProps);
-      }
-      */
 
       // Pass on state as requested from this.props.keys
 
@@ -917,7 +942,7 @@ var TXComponent = (function (_Component) {
 TXComponent.defaultProps = { filter: {}, keys: ["pending", "received", "dropped", "failed", "confirmed"] };
 ReactMixin(TXComponent.prototype, Reflux.ListenerMixin);
 module.exports = TXComponent;
-},{"../Store":2,"../utils":5,"lodash":182,"object-assign":183,"react-mixin":184,"react/addons":187,"reflux":376}],4:[function(require,module,exports){
+},{"../Store":2,"../utils":5,"lodash":182,"object-assign":183,"react-mixin":184,"react/addons":187,"reflux":381}],4:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -18341,8 +18366,8 @@ exports.isBuffer = isBuffer;
 function objectToString(o) {
   return Object.prototype.toString.call(o);
 }
-}).call(this,{"isBuffer":require("/Users/ck/dev/consensys/noncense/persona-integration/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
-},{"/Users/ck/dev/consensys/noncense/persona-integration/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":154}],164:[function(require,module,exports){
+}).call(this,{"isBuffer":require("/Users/ck/dev/consensys/noncense/app/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
+},{"/Users/ck/dev/consensys/noncense/app/reflux-tx/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":154}],164:[function(require,module,exports){
 (function (process){
 'use strict';
 module.exports = nextTick;
@@ -55775,126 +55800,274 @@ module.exports = warning;
 
 }).call(this,require('_process'))
 },{"./emptyFunction":316,"_process":156}],359:[function(require,module,exports){
+module.exports = require('./lib/React');
+
+},{"./lib/React":217}],360:[function(require,module,exports){
 'use strict';
 
-var update = require('react/addons').addons.update;
+var _utils = require('./utils.js');
 
-var _ = {}
+var _utils2 = _interopRequireDefault(_utils);
 
-_.object = function(keys,vals){
-  var o={}, i=0;
-  for(;i < keys.length; i++){
-    o[keys[i]] = vals[i];
-  }
-  return o;
-};
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-_.isObject = function(obj) {
-  var type = typeof obj;
-  return type === 'function' || type === 'object' && !!obj;
-};
-
-_.extend = function(obj) {
-  if (!_.isObject(obj)) {
-    return obj;
-  }
-  var source, prop;
-  for (var i = 1, length = arguments.length; i < length; i++) {
-    source = arguments[i];
-    for (prop in source) {
-      if (Object.getOwnPropertyDescriptor && Object.defineProperty) {
-        var propertyDescriptor = Object.getOwnPropertyDescriptor(source, prop);
-        Object.defineProperty(obj, prop, propertyDescriptor);
-      } else {
-        obj[prop] = source[prop];
-      }
-    }
-  }
-  return obj;
-};
-
-_.isFunction = function(value) {
-  return typeof value === 'function';
-};
-
-/**
- * Creates the mixin, ready for use in a store
- *
- * @param Reflux object An instance of Reflux
- * @returns {{setState: Function, init: Function}}
- */
-module.exports = function stateMixin(Reflux) {
-
-  if (typeof Reflux !== 'object' || typeof Reflux.createAction !== 'function') {
-    throw new Error('Must pass reflux instance to reflux-state-mixin');
-  }
-
-  function attachAction(options, actionName) {
-    if (this[actionName]) {
-      console.warn(
-          'Not attaching event ' + actionName + '; key already exists'
-      );
-      return;
-    }
-    this[actionName] = Reflux.createAction(options);
-  }
+module.exports = function (store, key) {
+  var noKey = key === undefined;
 
   return {
-    setState: function (state) {
-      for(var key in state){
-        if(state.hasOwnProperty(key)){
-          if(this.state[key]!== state[key]){
-            this[key].trigger(state[key]);
-          }
-        }
-      }
-      this.state = update(this.state, {$merge: state});
-      this.trigger(this.state);
-    },
-
-    init: function () {
-      if(_.isFunction(this.getInitialState)){
-        this.state = this.getInitialState();
-        for(var key in this.state){
-          if(this.state.hasOwnProperty(key)){
-            attachAction.call(this, this.state[key], key);
-          }
-        }
+    getInitialState: function getInitialState() {
+      if (!_utils2.default.isFunction(store.getInitialState)) {
+        console.warn('component ' + this.constructor.displayName + ' is trying to connect to a store that lacks "getInitialState()" method');
+        return {};
+      } else {
+        return noKey ? store.state : _utils2.default.object([key], [store.state[key]]);
       }
     },
+    componentDidMount: function componentDidMount() {
 
-    connect: function (store, key) {
-      return {
-        getInitialState: function(){
-          if (!_.isFunction(store.getInitialState)) {
-            return {};
-          } else if (key === undefined) {
-            return store.state;
-          } else {
-            return _.object([key],[store.state[key]]);
-          }
-        },
-        componentDidMount: function(){
-          _.extend(this, Reflux.ListenerMethods);
-          var noKey = key === undefined;
-          var me = this,
-              cb = (noKey ? this.setState : function(v){
-            if (typeof me.isMounted === "undefined" || me.isMounted() === true) {
-              me.setState(_.object([key],[v]));
+      var componentInstance = this;
+
+      var setStateFunc = function setStateFunc(state) {
+        var newState = noKey ? state : _utils2.default.object([key], [state]);
+
+        if (typeof componentInstance.isMounted === "undefined" || componentInstance.isMounted() === true) {
+          componentInstance.setState(newState);
+        }
+      };
+
+      var listener = noKey ? store : store[key];
+
+      this.unsubscribe = listener.listen(setStateFunc);
+    },
+    componentWillUnmount: function componentWillUnmount() {
+      this.unsubscribe();
+    }
+  };
+};
+},{"./utils.js":364}],361:[function(require,module,exports){
+'use strict';
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (store, key) {
+  var noKey = key === undefined;
+
+  return function (Component) {
+    //if no explicit state declaration in 'constructor'
+    Component.prototype.state = {};
+
+    return (function (_React$Component) {
+      _inherits(ConnectorWrapper, _React$Component);
+
+      function ConnectorWrapper() {
+        _classCallCheck(this, ConnectorWrapper);
+
+        return _possibleConstructorReturn(this, Object.getPrototypeOf(ConnectorWrapper).apply(this, arguments));
+      }
+
+      _createClass(ConnectorWrapper, [{
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+          var findInnerComponent = function findInnerComponent(instance) {
+            //recursively find inner most 'real react component', allowing multiple decorators
+            if (instance.refs[componentRef]) {
+              return findInnerComponent(instance.refs[componentRef]);
             }
-          }),
-              listener = noKey ? store : store[key];
-          this.listenTo(listener, cb);
-        },
-        componentWillUnmount: Reflux.ListenerMixin.componentWillUnmount
+            return instance;
+          };
+          var componentInstance = findInnerComponent(this.refs[componentRef]);
+
+          var setStateFunc = function setStateFunc(state) {
+            var newState = noKey ? state : _utils2.default.object([key], [state]);
+            componentInstance.setState(newState);
+          };
+
+          //setting `initialState` after Component's constructor method (where: `state={...}`)
+          if (!_utils2.default.isFunction(store.getInitialState)) {
+            console.warn('component ' + Component.name + ' is trying to connect to a store that lacks "getInitialState()" method');
+            return;
+          } else {
+            var state = noKey ? store.state : store.state[key];
+            setStateFunc(state);
+          }
+
+          var listener = noKey ? store : store[key];
+
+          this.unsubscribe = listener.listen(setStateFunc);
+        }
+      }, {
+        key: 'componentWillUnmount',
+        value: function componentWillUnmount() {
+          this.unsubscribe();
+        }
+      }, {
+        key: 'render',
+        value: function render() {
+          return _react2.default.createElement(Component, _extends({
+            ref: componentRef
+          }, this.props));
+        }
+      }]);
+
+      return ConnectorWrapper;
+    })(_react2.default.Component);
+  };
+};
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _utils = require('./utils.js');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var componentRef = '__CONNECTED_COMPONENT_REF__';
+},{"./utils.js":364,"react":359}],362:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _storeMixin = require('./storeMixin');
+
+var _storeMixin2 = _interopRequireDefault(_storeMixin);
+
+var _connectMixin = require('./connectMixin');
+
+var _connectMixin2 = _interopRequireDefault(_connectMixin);
+
+var _decorator = require('./decorator');
+
+var _decorator2 = _interopRequireDefault(_decorator);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+//compatibility with versions below 0.6.0
+var port = function port() {
+  _storeMixin2.default.connect = _connectMixin2.default;
+  return _storeMixin2.default;
+};
+
+//^0.6.0 index
+port.store = _storeMixin2.default;
+port.connect = _connectMixin2.default;
+port.connector = _decorator2.default;
+
+//don't remove `module.exports = port`, to enable common-js-non-es6 way of importing : import {x} from '..'
+module.exports = port;
+exports.default = port;
+},{"./connectMixin":360,"./decorator":361,"./storeMixin":363}],363:[function(require,module,exports){
+'use strict';
+
+var Reflux = require('reflux');
+var utils = require('./utils.js');
+
+function attachAction(options, actionName) {
+  if (this[actionName]) {
+    console.warn('Not attaching event ' + actionName + '; key already exists');
+    return;
+  }
+  this[actionName] = Reflux.createAction(options);
+}
+
+module.exports = {
+  setState: function setState(state) {
+    var changed = false;
+    var prevState = utils.extend({}, this.state);
+
+    for (var key in state) {
+      if (state.hasOwnProperty(key)) {
+        if (this.state[key] !== state[key]) {
+          this[key].trigger(state[key]);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      this.state = utils.extend(this.state, state);
+
+      if (utils.isFunction(this.storeDidUpdate)) {
+        this.storeDidUpdate(prevState);
+      }
+
+      this.trigger(this.state);
+    }
+  },
+
+  init: function init() {
+    if (utils.isFunction(this.getInitialState)) {
+      this.state = this.getInitialState();
+      for (var key in this.state) {
+        if (this.state.hasOwnProperty(key)) {
+          attachAction.call(this, this.state[key], key);
+        }
       }
     }
   }
 };
+},{"./utils.js":364,"reflux":381}],364:[function(require,module,exports){
+'use strict';
 
+function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
 
+var utils = {};
 
-},{"react/addons":187}],360:[function(require,module,exports){
+utils.object = function (keys, vals) {
+    var o = {},
+        i = 0;
+    for (; i < keys.length; i++) {
+        o[keys[i]] = vals[i];
+    }
+    return o;
+};
+
+utils.isObject = function (obj) {
+    var type = typeof obj === 'undefined' ? 'undefined' : _typeof(obj);
+    return type === 'function' || type === 'object' && !!obj;
+};
+
+utils.extend = function (obj) {
+    if (!utils.isObject(obj)) {
+        return obj;
+    }
+    var source, prop;
+    for (var i = 1, length = arguments.length; i < length; i++) {
+        source = arguments[i];
+        for (prop in source) {
+            if (Object.getOwnPropertyDescriptor && Object.defineProperty) {
+                var propertyDescriptor = Object.getOwnPropertyDescriptor(source, prop);
+                Object.defineProperty(obj, prop, propertyDescriptor);
+            } else {
+                obj[prop] = source[prop];
+            }
+        }
+    }
+    return obj;
+};
+
+utils.isFunction = function (value) {
+    return typeof value === 'function';
+};
+
+module.exports = utils;
+},{}],365:[function(require,module,exports){
 'use strict';
 
 //
@@ -56158,7 +56331,7 @@ if ('undefined' !== typeof module) {
   module.exports = EventEmitter;
 }
 
-},{}],361:[function(require,module,exports){
+},{}],366:[function(require,module,exports){
 /**
  * A module of methods that you want to include in all actions.
  * This module is consumed by `createAction`.
@@ -56166,7 +56339,7 @@ if ('undefined' !== typeof module) {
 "use strict";
 
 module.exports = {};
-},{}],362:[function(require,module,exports){
+},{}],367:[function(require,module,exports){
 "use strict";
 
 exports.createdStores = [];
@@ -56181,7 +56354,7 @@ exports.reset = function () {
         exports.createdActions.pop();
     }
 };
-},{}],363:[function(require,module,exports){
+},{}],368:[function(require,module,exports){
 "use strict";
 
 var _ = require("./utils"),
@@ -56415,7 +56588,7 @@ module.exports = {
      */
     joinStrict: maker("strict")
 };
-},{"./joins":370,"./utils":372}],364:[function(require,module,exports){
+},{"./joins":375,"./utils":377}],369:[function(require,module,exports){
 "use strict";
 
 var _ = require("./utils");
@@ -56471,56 +56644,6 @@ module.exports = {
     },
 
     /**
-     * Attach handlers to promise that trigger the completed and failed
-     * child publishers, if available.
-     *
-     * @param {Object} The promise to attach to
-     */
-    promise: function promise(_promise) {
-        var me = this;
-
-        var canHandlePromise = this.children.indexOf("completed") >= 0 && this.children.indexOf("failed") >= 0;
-
-        if (!canHandlePromise) {
-            throw new Error("Publisher must have \"completed\" and \"failed\" child publishers");
-        }
-
-        _promise.then(function (response) {
-            return me.completed(response);
-        }, function (error) {
-            return me.failed(error);
-        });
-    },
-
-    /**
-     * Subscribes the given callback for action triggered, which should
-     * return a promise that in turn is passed to `this.promise`
-     *
-     * @param {Function} callback The callback to register as event handler
-     */
-    listenAndPromise: function listenAndPromise(callback, bindContext) {
-        var me = this;
-        bindContext = bindContext || this;
-        this.willCallPromise = (this.willCallPromise || 0) + 1;
-
-        var removeListen = this.listen(function () {
-
-            if (!callback) {
-                throw new Error("Expected a function returning a promise but got " + callback);
-            }
-
-            var args = arguments,
-                promise = callback.apply(bindContext, args);
-            return me.promise.call(me, promise);
-        }, bindContext);
-
-        return function () {
-            me.willCallPromise--;
-            removeListen.call(me);
-        };
-    },
-
-    /**
      * Publishes an event using `this.emitter` (if `shouldEmit` agrees)
      */
     trigger: function trigger() {
@@ -56544,62 +56667,26 @@ module.exports = {
     },
 
     /**
-     * Returns a Promise for the triggered action
+     * Wraps the trigger mechanism with a deferral function.
      *
-     * @return {Promise}
-     *   Resolved by completed child action.
-     *   Rejected by failed child action.
-     *   If listenAndPromise'd, then promise associated to this trigger.
-     *   Otherwise, the promise is for next child action completion.
+     * @param {Function} callback the deferral function,
+     *        first argument is the resolving function and the
+     *        rest are the arguments provided from the previous
+     *        trigger invocation
      */
-    triggerPromise: function triggerPromise() {
-        var me = this;
-        var args = arguments;
-
-        var canHandlePromise = this.children.indexOf("completed") >= 0 && this.children.indexOf("failed") >= 0;
-
-        var promise = _.createPromise(function (resolve, reject) {
-            // If `listenAndPromise` is listening
-            // patch `promise` w/ context-loaded resolve/reject
-            if (me.willCallPromise) {
-                _.nextTick(function () {
-                    var previousPromise = me.promise;
-                    me.promise = function (inputPromise) {
-                        inputPromise.then(resolve, reject);
-                        // Back to your regularly schedule programming.
-                        me.promise = previousPromise;
-                        return me.promise.apply(me, arguments);
-                    };
-                    me.trigger.apply(me, args);
-                });
-                return;
-            }
-
-            if (canHandlePromise) {
-                var removeSuccess = me.completed.listen(function (argsArr) {
-                    removeSuccess();
-                    removeFailed();
-                    resolve(argsArr);
-                });
-
-                var removeFailed = me.failed.listen(function (argsArr) {
-                    removeSuccess();
-                    removeFailed();
-                    reject(argsArr);
-                });
-            }
-
-            me.triggerAsync.apply(me, args);
-
-            if (!canHandlePromise) {
-                resolve();
-            }
-        });
-
-        return promise;
+    deferWith: function deferWith(callback) {
+        var oldTrigger = this.trigger,
+            ctx = this,
+            resolver = function resolver() {
+            oldTrigger.apply(ctx, arguments);
+        };
+        this.trigger = function () {
+            callback.apply(ctx, [resolver].concat([].splice.call(arguments, 0)));
+        };
     }
+
 };
-},{"./utils":372}],365:[function(require,module,exports){
+},{"./utils":377}],370:[function(require,module,exports){
 /**
  * A module of methods that you want to include in all stores.
  * This module is consumed by `createStore`.
@@ -56607,7 +56694,7 @@ module.exports = {
 "use strict";
 
 module.exports = {};
-},{}],366:[function(require,module,exports){
+},{}],371:[function(require,module,exports){
 "use strict";
 
 module.exports = function (store, definition) {
@@ -56633,7 +56720,7 @@ module.exports = function (store, definition) {
 
     return store;
 };
-},{}],367:[function(require,module,exports){
+},{}],372:[function(require,module,exports){
 "use strict";
 
 var _ = require("./utils"),
@@ -56688,7 +56775,7 @@ var createAction = function createAction(definition) {
     }, PublisherMethods, ActionMethods, definition);
 
     var functor = function functor() {
-        var triggerType = functor.sync ? "trigger" : _.environment.hasPromise ? "triggerPromise" : "triggerAsync";
+        var triggerType = functor.sync ? "trigger" : "triggerAsync";
         return functor[triggerType].apply(functor, arguments);
     };
 
@@ -56700,7 +56787,7 @@ var createAction = function createAction(definition) {
 };
 
 module.exports = createAction;
-},{"./ActionMethods":361,"./Keep":362,"./PublisherMethods":364,"./utils":372}],368:[function(require,module,exports){
+},{"./ActionMethods":366,"./Keep":367,"./PublisherMethods":369,"./utils":377}],373:[function(require,module,exports){
 "use strict";
 
 var _ = require("./utils"),
@@ -56765,7 +56852,7 @@ module.exports = function (definition) {
 
     return store;
 };
-},{"./Keep":362,"./ListenerMethods":363,"./PublisherMethods":364,"./StoreMethods":365,"./bindMethods":366,"./mixer":371,"./utils":372}],369:[function(require,module,exports){
+},{"./Keep":367,"./ListenerMethods":368,"./PublisherMethods":369,"./StoreMethods":370,"./bindMethods":371,"./mixer":376,"./utils":377}],374:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -56773,7 +56860,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 var Reflux = {
     version: {
-        "reflux-core": "0.2.1"
+        "reflux-core": "0.3.0"
     }
 };
 
@@ -56844,21 +56931,6 @@ Reflux.setEventEmitter = function (ctx) {
 };
 
 /**
- * Sets the Promise library that Reflux uses
- */
-Reflux.setPromise = function (ctx) {
-    Reflux.Promise = _.Promise = ctx;
-};
-
-/**
- * Sets the Promise factory that creates new promises
- * @param {Function} factory has the signature `function(resolver) { return [new Promise]; }`
- */
-Reflux.setPromiseFactory = function (factory) {
-    _.createPromise = factory;
-};
-
-/**
  * Sets the method used for deferring actions and stores
  */
 Reflux.nextTick = function (nextTick) {
@@ -56885,7 +56957,7 @@ if (!Function.prototype.bind) {
 
 exports["default"] = Reflux;
 module.exports = exports["default"];
-},{"./ActionMethods":361,"./Keep":362,"./ListenerMethods":363,"./PublisherMethods":364,"./StoreMethods":365,"./createAction":367,"./createStore":368,"./joins":370,"./utils":372}],370:[function(require,module,exports){
+},{"./ActionMethods":366,"./Keep":367,"./ListenerMethods":368,"./PublisherMethods":369,"./StoreMethods":370,"./createAction":372,"./createStore":373,"./joins":375,"./utils":377}],375:[function(require,module,exports){
 /**
  * Internal module used to create static and instance join methods
  */
@@ -57002,7 +57074,7 @@ function emitIfAllListenablesEmitted(join) {
     join.callback.apply(join.listener, join.args);
     reset(join);
 }
-},{"./createStore":368,"./utils":372}],371:[function(require,module,exports){
+},{"./createStore":373,"./utils":377}],376:[function(require,module,exports){
 "use strict";
 
 var _ = require("./utils");
@@ -57062,7 +57134,7 @@ module.exports = function mix(def) {
 
     return updated;
 };
-},{"./utils":372}],372:[function(require,module,exports){
+},{"./utils":377}],377:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -57085,25 +57157,6 @@ function callbackName(string, prefix) {
     prefix = prefix || "on";
     return prefix + exports.capitalize(string);
 }
-
-var environment = {};
-
-exports.environment = environment;
-function checkEnv(target) {
-    var flag = undefined;
-    try {
-        /*eslint-disable no-eval */
-        if (eval(target)) {
-            flag = true;
-        }
-        /*eslint-enable no-eval */
-    } catch (e) {
-        flag = false;
-    }
-    environment[callbackName(target, "has")] = flag;
-}
-checkEnv("setImmediate");
-checkEnv("Promise");
 
 /*
  * isObject, extend, isFunction, isArguments are taken from undescore/lodash in
@@ -57140,15 +57193,9 @@ function isFunction(value) {
 
 exports.EventEmitter = require("eventemitter3");
 
-if (environment.hasSetImmediate) {
-    exports.nextTick = function (callback) {
-        setImmediate(callback);
-    };
-} else {
-    exports.nextTick = function (callback) {
-        setTimeout(callback, 0);
-    };
-}
+exports.nextTick = function (callback) {
+    setTimeout(callback, 0);
+};
 
 function object(keys, vals) {
     var o = {},
@@ -57157,16 +57204,6 @@ function object(keys, vals) {
         o[keys[i]] = vals[i];
     }
     return o;
-}
-
-if (environment.hasPromise) {
-    exports.Promise = Promise;
-    exports.createPromise = function (resolver) {
-        return new exports.Promise(resolver);
-    };
-} else {
-    exports.Promise = null;
-    exports.createPromise = function () {};
 }
 
 function isArguments(value) {
@@ -57178,7 +57215,7 @@ function throwIf(val, msg) {
         throw Error(msg || val);
     }
 }
-},{"eventemitter3":360}],373:[function(require,module,exports){
+},{"eventemitter3":365}],378:[function(require,module,exports){
 var _ = require('reflux-core/lib/utils'),
     ListenerMethods = require('reflux-core/lib/ListenerMethods');
 
@@ -57197,7 +57234,7 @@ module.exports = _.extend({
 
 }, ListenerMethods);
 
-},{"reflux-core/lib/ListenerMethods":363,"reflux-core/lib/utils":372}],374:[function(require,module,exports){
+},{"reflux-core/lib/ListenerMethods":368,"reflux-core/lib/utils":377}],379:[function(require,module,exports){
 var ListenerMethods = require('reflux-core/lib/ListenerMethods'),
     ListenerMixin = require('./ListenerMixin'),
     _ = require('reflux-core/lib/utils');
@@ -57226,7 +57263,7 @@ module.exports = function(listenable,key){
     };
 };
 
-},{"./ListenerMixin":373,"reflux-core/lib/ListenerMethods":363,"reflux-core/lib/utils":372}],375:[function(require,module,exports){
+},{"./ListenerMixin":378,"reflux-core/lib/ListenerMethods":368,"reflux-core/lib/utils":377}],380:[function(require,module,exports){
 var ListenerMethods = require('reflux-core/lib/ListenerMethods'),
     ListenerMixin = require('./ListenerMixin'),
     _ = require('reflux-core/lib/utils');
@@ -57268,7 +57305,7 @@ module.exports = function(listenable, key, filterFunc) {
 };
 
 
-},{"./ListenerMixin":373,"reflux-core/lib/ListenerMethods":363,"reflux-core/lib/utils":372}],376:[function(require,module,exports){
+},{"./ListenerMixin":378,"reflux-core/lib/ListenerMethods":368,"reflux-core/lib/utils":377}],381:[function(require,module,exports){
 var Reflux = require('reflux-core');
 
 Reflux.connect = require('./connect');
@@ -57283,7 +57320,7 @@ Reflux.listenToMany = require('./listenToMany');
 
 module.exports = Reflux;
 
-},{"./ListenerMixin":373,"./connect":374,"./connectFilter":375,"./listenTo":377,"./listenToMany":378,"reflux-core":369}],377:[function(require,module,exports){
+},{"./ListenerMixin":378,"./connect":379,"./connectFilter":380,"./listenTo":382,"./listenToMany":383,"reflux-core":374}],382:[function(require,module,exports){
 var ListenerMethods = require('reflux-core/lib/ListenerMethods');
 
 /**
@@ -57320,7 +57357,7 @@ module.exports = function(listenable,callback,initial){
     };
 };
 
-},{"reflux-core/lib/ListenerMethods":363}],378:[function(require,module,exports){
+},{"reflux-core/lib/ListenerMethods":368}],383:[function(require,module,exports){
 var ListenerMethods = require('reflux-core/lib/ListenerMethods');
 
 /**
@@ -57355,7 +57392,7 @@ module.exports = function(listenables){
     };
 };
 
-},{"reflux-core/lib/ListenerMethods":363}],379:[function(require,module,exports){
+},{"reflux-core/lib/ListenerMethods":368}],384:[function(require,module,exports){
 var web3 = require('./lib/web3');
 var namereg = require('./lib/web3/namereg');
 
@@ -57376,7 +57413,7 @@ if (typeof window !== 'undefined' && typeof window.web3 === 'undefined') {
 module.exports = web3;
 
 
-},{"./lib/web3":401,"./lib/web3/contract":404,"./lib/web3/httpprovider":410,"./lib/web3/iban":411,"./lib/web3/ipcprovider":412,"./lib/web3/namereg":420,"./lib/web3/transfer":424}],380:[function(require,module,exports){
+},{"./lib/web3":406,"./lib/web3/contract":409,"./lib/web3/httpprovider":415,"./lib/web3/iban":416,"./lib/web3/ipcprovider":417,"./lib/web3/namereg":425,"./lib/web3/transfer":429}],385:[function(require,module,exports){
 module.exports=[
   {
     "constant": true,
@@ -57631,7 +57668,7 @@ module.exports=[
     "type": "event"
   }
 ]
-},{}],381:[function(require,module,exports){
+},{}],386:[function(require,module,exports){
 module.exports=[
   {
     "constant": true,
@@ -57740,7 +57777,7 @@ module.exports=[
     "type": "event"
   }
 ]
-},{}],382:[function(require,module,exports){
+},{}],387:[function(require,module,exports){
 module.exports=[
   {
     "constant": false,
@@ -57887,7 +57924,7 @@ module.exports=[
     "type": "event"
   }
 ]
-},{}],383:[function(require,module,exports){
+},{}],388:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -57920,7 +57957,7 @@ SolidityTypeAddress.prototype.staticPartLength = function (name) {
 module.exports = SolidityTypeAddress;
 
 
-},{"./formatters":388,"./type":393}],384:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],389:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -57952,7 +57989,7 @@ SolidityTypeBool.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeBool;
 
-},{"./formatters":388,"./type":393}],385:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],390:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -57992,7 +58029,7 @@ SolidityTypeBytes.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeBytes;
 
-},{"./formatters":388,"./type":393}],386:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],391:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -58253,7 +58290,7 @@ var coder = new SolidityCoder([
 module.exports = coder;
 
 
-},{"./address":383,"./bool":384,"./bytes":385,"./dynamicbytes":387,"./formatters":388,"./int":389,"./real":391,"./string":392,"./uint":394,"./ureal":395}],387:[function(require,module,exports){
+},{"./address":388,"./bool":389,"./bytes":390,"./dynamicbytes":392,"./formatters":393,"./int":394,"./real":396,"./string":397,"./uint":399,"./ureal":400}],392:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -58280,7 +58317,7 @@ SolidityTypeDynamicBytes.prototype.isDynamicType = function () {
 module.exports = SolidityTypeDynamicBytes;
 
 
-},{"./formatters":388,"./type":393}],388:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],393:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -58532,7 +58569,7 @@ module.exports = {
 };
 
 
-},{"../utils/config":397,"../utils/utils":399,"./param":390,"bignumber.js":425}],389:[function(require,module,exports){
+},{"../utils/config":402,"../utils/utils":404,"./param":395,"bignumber.js":430}],394:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -58570,7 +58607,7 @@ SolidityTypeInt.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeInt;
 
-},{"./formatters":388,"./type":393}],390:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],395:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -58724,7 +58761,7 @@ SolidityParam.encodeList = function (params) {
 module.exports = SolidityParam;
 
 
-},{"../utils/utils":399}],391:[function(require,module,exports){
+},{"../utils/utils":404}],396:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -58762,7 +58799,7 @@ SolidityTypeReal.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeReal;
 
-},{"./formatters":388,"./type":393}],392:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],397:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -58789,7 +58826,7 @@ SolidityTypeString.prototype.isDynamicType = function () {
 module.exports = SolidityTypeString;
 
 
-},{"./formatters":388,"./type":393}],393:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],398:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityParam = require('./param');
 
@@ -59034,7 +59071,7 @@ SolidityType.prototype.decode = function (bytes, offset, name) {
 
 module.exports = SolidityType;
 
-},{"./formatters":388,"./param":390}],394:[function(require,module,exports){
+},{"./formatters":393,"./param":395}],399:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -59072,7 +59109,7 @@ SolidityTypeUInt.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeUInt;
 
-},{"./formatters":388,"./type":393}],395:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],400:[function(require,module,exports){
 var f = require('./formatters');
 var SolidityType = require('./type');
 
@@ -59110,7 +59147,7 @@ SolidityTypeUReal.prototype.staticPartLength = function (name) {
 
 module.exports = SolidityTypeUReal;
 
-},{"./formatters":388,"./type":393}],396:[function(require,module,exports){
+},{"./formatters":393,"./type":398}],401:[function(require,module,exports){
 'use strict';
 
 // go env doesn't have and need XMLHttpRequest
@@ -59121,7 +59158,7 @@ if (typeof XMLHttpRequest === 'undefined') {
 }
 
 
-},{}],397:[function(require,module,exports){
+},{}],402:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -59202,7 +59239,7 @@ module.exports = {
 };
 
 
-},{"bignumber.js":425}],398:[function(require,module,exports){
+},{"bignumber.js":430}],403:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -59244,7 +59281,7 @@ module.exports = function (str, isNew) {
 };
 
 
-},{"./utils":399,"crypto-js/sha3":427}],399:[function(require,module,exports){
+},{"./utils":404,"crypto-js/sha3":432}],404:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -59773,12 +59810,12 @@ module.exports = {
     isJson: isJson
 };
 
-},{"bignumber.js":425,"utf8":429}],400:[function(require,module,exports){
+},{"bignumber.js":430,"utf8":434}],405:[function(require,module,exports){
 module.exports={
     "version": "0.13.0"
 }
 
-},{}],401:[function(require,module,exports){
+},{}],406:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -59962,7 +59999,7 @@ setupMethods(web3.shh, shh.methods);
 module.exports = web3;
 
 
-},{"./utils/config":397,"./utils/sha3":398,"./utils/utils":399,"./version.json":400,"./web3/batch":403,"./web3/filter":407,"./web3/formatters":408,"./web3/method":414,"./web3/methods/db":415,"./web3/methods/eth":416,"./web3/methods/net":417,"./web3/methods/shh":418,"./web3/methods/watches":419,"./web3/property":421,"./web3/requestmanager":422,"./web3/syncing":423}],402:[function(require,module,exports){
+},{"./utils/config":402,"./utils/sha3":403,"./utils/utils":404,"./version.json":405,"./web3/batch":408,"./web3/filter":412,"./web3/formatters":413,"./web3/method":419,"./web3/methods/db":420,"./web3/methods/eth":421,"./web3/methods/net":422,"./web3/methods/shh":423,"./web3/methods/watches":424,"./web3/property":426,"./web3/requestmanager":427,"./web3/syncing":428}],407:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60051,7 +60088,7 @@ AllSolidityEvents.prototype.attachToContract = function (contract) {
 module.exports = AllSolidityEvents;
 
 
-},{"../utils/sha3":398,"../utils/utils":399,"./event":406,"./filter":407,"./formatters":408,"./methods/watches":419}],403:[function(require,module,exports){
+},{"../utils/sha3":403,"../utils/utils":404,"./event":411,"./filter":412,"./formatters":413,"./methods/watches":424}],408:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60119,7 +60156,7 @@ Batch.prototype.execute = function () {
 module.exports = Batch;
 
 
-},{"./errors":405,"./jsonrpc":413,"./requestmanager":422}],404:[function(require,module,exports){
+},{"./errors":410,"./jsonrpc":418,"./requestmanager":427}],409:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60398,7 +60435,7 @@ var Contract = function (abi, address) {
 module.exports = contract;
 
 
-},{"../solidity/coder":386,"../utils/utils":399,"../web3":401,"./allevents":402,"./event":406,"./function":409}],405:[function(require,module,exports){
+},{"../solidity/coder":391,"../utils/utils":404,"../web3":406,"./allevents":407,"./event":411,"./function":414}],410:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60438,7 +60475,7 @@ module.exports = {
 };
 
 
-},{}],406:[function(require,module,exports){
+},{}],411:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60647,7 +60684,7 @@ SolidityEvent.prototype.attachToContract = function (contract) {
 module.exports = SolidityEvent;
 
 
-},{"../solidity/coder":386,"../utils/sha3":398,"../utils/utils":399,"./filter":407,"./formatters":408,"./methods/watches":419}],407:[function(require,module,exports){
+},{"../solidity/coder":391,"../utils/sha3":403,"../utils/utils":404,"./filter":412,"./formatters":413,"./methods/watches":424}],412:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -60878,7 +60915,7 @@ Filter.prototype.get = function (callback) {
 module.exports = Filter;
 
 
-},{"../utils/utils":399,"./formatters":408,"./requestmanager":422}],408:[function(require,module,exports){
+},{"../utils/utils":404,"./formatters":413,"./requestmanager":427}],413:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -61178,7 +61215,7 @@ module.exports = {
 };
 
 
-},{"../utils/config":397,"../utils/utils":399,"./iban":411}],409:[function(require,module,exports){
+},{"../utils/config":402,"../utils/utils":404,"./iban":416}],414:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -61415,7 +61452,7 @@ SolidityFunction.prototype.attachToContract = function (contract) {
 module.exports = SolidityFunction;
 
 
-},{"../solidity/coder":386,"../utils/sha3":398,"../utils/utils":399,"../web3":401,"./formatters":408}],410:[function(require,module,exports){
+},{"../solidity/coder":391,"../utils/sha3":403,"../utils/utils":404,"../web3":406,"./formatters":413}],415:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -61563,7 +61600,7 @@ HttpProvider.prototype.isConnected = function() {
 module.exports = HttpProvider;
 
 
-},{"./errors":405,"xmlhttprequest":396}],411:[function(require,module,exports){
+},{"./errors":410,"xmlhttprequest":401}],416:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -61792,7 +61829,7 @@ Iban.prototype.toString = function () {
 module.exports = Iban;
 
 
-},{"bignumber.js":425}],412:[function(require,module,exports){
+},{"bignumber.js":430}],417:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62012,7 +62049,7 @@ IpcProvider.prototype.sendAsync = function (payload, callback) {
 module.exports = IpcProvider;
 
 
-},{"../utils/utils":399,"./errors":405}],413:[function(require,module,exports){
+},{"../utils/utils":404,"./errors":410}],418:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62105,7 +62142,7 @@ Jsonrpc.prototype.toBatchPayload = function (messages) {
 module.exports = Jsonrpc;
 
 
-},{}],414:[function(require,module,exports){
+},{}],419:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62279,7 +62316,7 @@ Method.prototype.send = function () {
 module.exports = Method;
 
 
-},{"../utils/utils":399,"./errors":405,"./requestmanager":422}],415:[function(require,module,exports){
+},{"../utils/utils":404,"./errors":410,"./requestmanager":427}],420:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62337,7 +62374,7 @@ module.exports = {
     methods: methods
 };
 
-},{"../method":414}],416:[function(require,module,exports){
+},{"../method":419}],421:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62635,7 +62672,7 @@ module.exports = {
 };
 
 
-},{"../../utils/utils":399,"../formatters":408,"../method":414,"../property":421}],417:[function(require,module,exports){
+},{"../../utils/utils":404,"../formatters":413,"../method":419,"../property":426}],422:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62685,7 +62722,7 @@ module.exports = {
 };
 
 
-},{"../../utils/utils":399,"../property":421}],418:[function(require,module,exports){
+},{"../../utils/utils":404,"../property":426}],423:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62755,7 +62792,7 @@ module.exports = {
 };
 
 
-},{"../formatters":408,"../method":414}],419:[function(require,module,exports){
+},{"../formatters":413,"../method":419}],424:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62871,7 +62908,7 @@ module.exports = {
 };
 
 
-},{"../method":414}],420:[function(require,module,exports){
+},{"../method":419}],425:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -62907,7 +62944,7 @@ module.exports = {
 };
 
 
-},{"../contracts/GlobalRegistrar.json":380,"../contracts/ICAPRegistrar.json":381,"./contract":404}],421:[function(require,module,exports){
+},{"../contracts/GlobalRegistrar.json":385,"../contracts/ICAPRegistrar.json":386,"./contract":409}],426:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -63059,7 +63096,7 @@ Property.prototype.request = function () {
 module.exports = Property;
 
 
-},{"../utils/utils":399,"./requestmanager":422}],422:[function(require,module,exports){
+},{"../utils/utils":404,"./requestmanager":427}],427:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -63332,7 +63369,7 @@ RequestManager.prototype.poll = function () {
 module.exports = RequestManager;
 
 
-},{"../utils/config":397,"../utils/utils":399,"./errors":405,"./jsonrpc":413}],423:[function(require,module,exports){
+},{"../utils/config":402,"../utils/utils":404,"./errors":410,"./jsonrpc":418}],428:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -63435,7 +63472,7 @@ IsSyncing.prototype.stopWatching = function () {
 module.exports = IsSyncing;
 
 
-},{"../utils/utils":399,"./formatters":408,"./method":414,"./requestmanager":422}],424:[function(require,module,exports){
+},{"../utils/utils":404,"./formatters":413,"./method":419,"./requestmanager":427}],429:[function(require,module,exports){
 /*
     This file is part of ethereum.js.
 
@@ -63532,7 +63569,7 @@ var deposit = function (from, to, value, client, callback) {
 module.exports = transfer;
 
 
-},{"../contracts/SmartExchange.json":382,"../web3":401,"./contract":404,"./iban":411,"./namereg":420}],425:[function(require,module,exports){
+},{"../contracts/SmartExchange.json":387,"../web3":406,"./contract":409,"./iban":416,"./namereg":425}],430:[function(require,module,exports){
 /*! bignumber.js v2.0.7 https://github.com/MikeMcl/bignumber.js/LICENCE */
 
 ;(function (global) {
@@ -66217,7 +66254,7 @@ module.exports = transfer;
     }
 })(this);
 
-},{"crypto":11}],426:[function(require,module,exports){
+},{"crypto":11}],431:[function(require,module,exports){
 ;(function (root, factory) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -66960,7 +66997,7 @@ module.exports = transfer;
 	return CryptoJS;
 
 }));
-},{}],427:[function(require,module,exports){
+},{}],432:[function(require,module,exports){
 ;(function (root, factory, undef) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -67284,7 +67321,7 @@ module.exports = transfer;
 	return CryptoJS.SHA3;
 
 }));
-},{"./core":426,"./x64-core":428}],428:[function(require,module,exports){
+},{"./core":431,"./x64-core":433}],433:[function(require,module,exports){
 ;(function (root, factory) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -67589,7 +67626,7 @@ module.exports = transfer;
 	return CryptoJS;
 
 }));
-},{"./core":426}],429:[function(require,module,exports){
+},{"./core":431}],434:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.0.0 by @mathias */
 ;(function(root) {
