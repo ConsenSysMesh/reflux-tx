@@ -9,6 +9,7 @@ import TXActions from './Actions';
 import utils from './utils';
 
 var baseState = {
+    nonce: 0,
     error: null,
     // Genesis identifier (getBlock(0).hash)
     genesis: '',
@@ -64,6 +65,12 @@ export default Reflux.createStore({
 
   getInitialState() {
     return _.cloneDeep(baseState);
+  },
+
+  forceUpdate() {
+    this.setState({
+      nonce: this.state.nonce + 1
+    });
   },
 
   // Load transactions and pending hashes
@@ -249,7 +256,7 @@ export default Reflux.createStore({
     var newAccountStates = this.delTxState(this.state.accounts, stateObj, save);
     newAccountStates = this.addTxState(newAccountStates, _.set(stateObj, 'type', newStateType), save);
 
-    this.setState({accounts: newAccountStates});
+    this.setState({accounts: newAccountStates, nonce: this.state.nonce + 1});
   },
 
   getHighestNonce(account, type) {
@@ -486,7 +493,7 @@ export default Reflux.createStore({
         accountState = this.delTxState(accountState, elToRemove, false);
       }
     }.bind(this));
-    this.setState({accounts: accountState});
+    this.setState({accounts: accountState, nonce: this.state.nonce + 1});
     this.saveStorage();
   },
 
@@ -607,7 +614,7 @@ export default Reflux.createStore({
     delete _pending[_genesis];
     delete _unconfirmed[_genesis];
 
-    this.setState({txs: _txs, info: _info, pending: _pending, unconfirmed: _unconfirmed});
+    this.setState({txs: _txs, info: _info, pending: _pending, unconfirmed: _unconfirmed, nonce: this.nonce + 1});
     this.save('txs', _txs);
     this.save('info', _info);
   },
@@ -644,6 +651,7 @@ export default Reflux.createStore({
             return this.getTxState(hash);
           }.bind(this)), ['receipt'], function(err) {
             this.checkConfirms(); // Also records latest block
+            this.forceUpdate();
             this.startWatching();
             if (cb && typeof cb === 'function')
               cb();
