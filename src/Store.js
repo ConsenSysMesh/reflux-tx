@@ -510,7 +510,7 @@ export default Reflux.createStore({
   // TODO: add a timeout for unreceived pending?
   newBlock(err, hash) {
 
-    this.recordBlock(hash, function(err, block) {
+    this.recordBlock(utils.formatHex(hash, true), function(err, block) {
       if (err) {
         this.setState({error: err});
         return;

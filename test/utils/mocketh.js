@@ -1,5 +1,6 @@
 var web3 = require('web3');
 var chains = require('../chain');
+var utils = require('../../src/utils.js');
 
 var mocketh = function(chainName, blockTime) {
 	this.chainId = 0;
@@ -136,7 +137,7 @@ mocketh.prototype.getBlockNumber = function (cb) {
 }
 
 mocketh.prototype.getBlock = function (hashOrNumber, cb) {
-	var hash = hashOrNumber;
+	var hash = utils.formatHex(hashOrNumber);
 
 	if (typeof hashOrNumber === 'number')
 		hash = this.blockHash(this.chainId, hashOrNumber);
