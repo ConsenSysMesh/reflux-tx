@@ -72,7 +72,6 @@ module.exports = Reflux.createStore({
 
   init: function init() {
     // setup localforage driver
-    console.log("init");
     localforage.config({
       driver: localforage.WEBSQL, // Force WebSQL; same as using setDriver()
       name: "web3Store",
@@ -95,7 +94,6 @@ module.exports = Reflux.createStore({
 
   // Load transactions and pending hashes
   loadStorage: function loadStorage(cb) {
-    console.log("loadStorage");
     localforage.getItem(this.state.genesis).then((function (storage) {
       this.setState(_.assign(_.cloneDeep(baseState), JSON.parse(storage), { genesis: this.state.genesis }));
       cb();
@@ -107,7 +105,6 @@ module.exports = Reflux.createStore({
   checkConfirms: function checkConfirms() {
     var blockNumber = arguments[0] === undefined ? null : arguments[0];
 
-    console.log("checkConfirms");
     var txStore = this;
     function getBlockNumber(number, cb) {
       if (number) cb(number);else txStore.recordBlock(null, function (err, block) {
@@ -175,7 +172,6 @@ module.exports = Reflux.createStore({
   isValidStateObj: function isValidStateObj(stateObj) {
     var extras = arguments[1] === undefined ? [] : arguments[1];
 
-    console.log("isValidStateObj");
     return ["hash", "account", "nonce", "type"].concat(extras).every(function (prop) {
       return stateObj.hasOwnProperty(prop);
     });
@@ -185,7 +181,6 @@ module.exports = Reflux.createStore({
   addTxState: function addTxState(accounts, stateObj) {
     var save = arguments[2] === undefined ? true : arguments[2];
 
-    console.log("addTxState");
     // Ensure correct properties available
     if (!this.isValidStateObj(stateObj)) throw new Error("invalid stateObject " + JSON.stringify(stateObj));
 
@@ -259,7 +254,6 @@ module.exports = Reflux.createStore({
   updateState: function updateState(stateObj, newStateType) {
     var save = arguments[2] === undefined ? true : arguments[2];
 
-    console.log("updateState");
     if (!this.isValidStateObj(stateObj)) throw new Error("Invalid state object: " + stateObj);
 
     // When updating to pending, check if there are confirmed w a higher nonce
@@ -272,11 +266,10 @@ module.exports = Reflux.createStore({
     var newAccountStates = this.delTxState(this.state.accounts, stateObj, save);
     newAccountStates = this.addTxState(newAccountStates, _.set(stateObj, "type", newStateType), save);
 
-    this.setState({ accounts: newAccountStates });
+    this.setState({ accounts: newAccountStates, nonce: this.state.nonce + 1 });
   },
 
   getHighestNonce: function getHighestNonce(account, type) {
-    console.log("getHighestNonce");
     var hash;
     var nonces = _.get(this.state.accounts, [account, type, "nonces"], []);
 
@@ -322,7 +315,6 @@ module.exports = Reflux.createStore({
     var types = arguments[0] === undefined ? ["pending"] : arguments[0];
     var accounts = arguments[1] === undefined ? null : arguments[1];
 
-    console.log("getTxStates");
     var _accounts = this.state.accounts;
 
     var results = [];
@@ -366,7 +358,6 @@ module.exports = Reflux.createStore({
     var methods = arguments[1] === undefined ? ["receipt", "object"] : arguments[1];
     var callback = arguments[2] === undefined ? null : arguments[2];
 
-    console.log("loadTxData");
     var txs = utils.toArr(payload);
 
     // If no txs requested, default to all pending & received & dropped for all accounts
@@ -482,7 +473,6 @@ module.exports = Reflux.createStore({
 
   // Garbage collect the earliest stored confirmed & failed txs over quota
   garbageCollect: function garbageCollect() {
-    console.log("garbageCollect");
     var accountState = this.state.accounts;
 
     // Run GC for each stored account
@@ -500,13 +490,12 @@ module.exports = Reflux.createStore({
         accountState = this.delTxState(accountState, elToRemove, false);
       }
     }).bind(this));
-    this.setState({ accounts: accountState });
+    this.setState({ accounts: accountState, nonce: this.state.nonce + 1 });
     this.saveStorage();
   },
 
   // Get block zero hash
   setGenesis: function setGenesis(cb) {
-    console.log("setGenesis");
     web3.eth.getBlock(0, (function (err, block) {
       if (err) return cb(err);
       this.setState({ genesis: block.hash });
@@ -517,7 +506,7 @@ module.exports = Reflux.createStore({
   // On each block, loadtxdata for pending, if there's a fork reload pending, received, & dropped
   // TODO: add a timeout for unreceived pending?
   newBlock: function newBlock(err, hash) {
-    console.log("newBlock");
+
     this.recordBlock(hash, (function (err, block) {
       if (err) {
         this.setState({ error: err });
@@ -539,16 +528,13 @@ module.exports = Reflux.createStore({
       this.prevBlock = block;
 
       // Stop watching when no confirming or pending txs left
-      console.log("almost done with newBlock");
       if (!pending.length && !confirming.length) this.stopWatching();else this.loadTxData(reloadTxs, ["receipt"], (function (err) {
         this.checkConfirms(block.number);
-        console.log("done with newBlock");
       }).bind(this));
     }).bind(this));
   },
 
   stopWatching: function stopWatching() {
-    console.log("stopWatching");
     if (this.filter) {
       this.filter.stopWatching();
       this.filter = null;
@@ -558,18 +544,13 @@ module.exports = Reflux.createStore({
   // sets the eth filter to watch latest blocks
   // called in onAdd & onConnect (when any pending or unconfirmed)
   startWatching: function startWatching() {
-    console.log("startWatching");
     if (this.filter) {
-      this.newBlock(null);
-    } else {
-      this.filter = web3.eth.filter("latest");
-      this.filter.watch(this.newBlock);
-      this.newBlock(null);
-    }
+      return;
+    }this.filter = web3.eth.filter("latest");
+    this.filter.watch(this.newBlock);
   },
 
   saveStorage: function saveStorage() {
-    console.log("saveStorage");
     var saveState = ["accounts", "info", "objects", "receipts"].reduce((function (o, v) {
       o[v] = this.state[v];
       return o;
@@ -630,14 +611,13 @@ module.exports = Reflux.createStore({
     delete _pending[_genesis];
     delete _unconfirmed[_genesis];
 
-    this.setState({ txs: _txs, info: _info, pending: _pending, unconfirmed: _unconfirmed });
+    this.setState({ txs: _txs, info: _info, pending: _pending, unconfirmed: _unconfirmed, nonce: this.nonce + 1 });
     this.save("txs", _txs);
     this.save("info", _info);
   },
 
   // For each txInfo, check if the hash exists in txInfo already, if it does, overwrite txInfo but don't append to tx array
   onAdd: function onAdd(payload, cb) {
-    console.log("onAdd");
     // Turn params into array if not already, filter out any not including hash property
     payload = utils.toArr(payload).filter(function (el) {
       return el.hasOwnProperty("hash");
@@ -660,19 +640,17 @@ module.exports = Reflux.createStore({
     this.setState({ info: _.assign(this.state.info, newInfo) });
 
     // Get new transaction objects from web3, then load receipts (if the hashes are new...otherwise don't waste time)
-    console.log("loading tx data", newHashes.length);
     if (newHashes.length) this.loadTxData(newHashes, ["object"], (function (err) {
       if (err) cb(err);
       // if no cb error, then we can safeuly assume newHashes have txObjects in state
       else {
-        console.log("loading tx receipts");
         // Must load receipts using whole stateObjects so the new states can be updated correctly
         this.loadTxData(newHashes.map((function (hash) {
           return this.getTxState(hash);
         }).bind(this)), ["receipt"], (function (err) {
           this.checkConfirms(); // Also records latest block
-          this.startWatching();
           this.forceUpdate();
+          this.startWatching();
           if (cb && typeof cb === "function") cb();
         }).bind(this));
       }
@@ -681,7 +659,6 @@ module.exports = Reflux.createStore({
 
   // Records blockNum or latest blockNumber & it's timestamp & hash as latest known block
   recordBlock: function recordBlock(blockId, callback) {
-    console.log("recordBlock");
 
     function getBlockNumber(cb) {
       if (blockId) {
@@ -714,7 +691,6 @@ module.exports = Reflux.createStore({
   }
   */
   onConnect: function onConnect(opts) {
-    console.log("onConnect");
     if (_.has(opts, "provider")) web3.setProvider(new web3.providers.HttpProvider(opts.provider));
     if (_.has(opts, "confirmCount")) this.confirmCount = opts.confirmCount;
     if (_.has(opts, "bufferSize")) this.bufferSize = opts.bufferSize;
@@ -828,7 +804,6 @@ var TXComponent = (function (_Component) {
       // State is the txstore state, props are the nextProps or current props
 
       value: function parseStore(state, props) {
-        console.log("parseStore", state, props, this.props);
         if (typeof props === "undefined") props = this.props;
 
         var filter = _.get(this.props, "filter", {});
@@ -876,9 +851,6 @@ var TXComponent = (function (_Component) {
     },
     componentDidMount: {
       value: function componentDidMount() {
-        console.log("TXCOMPONENT DID MOUNT");
-        console.log("TXCOMPONENT DID MOUNT");
-        console.log("TXCOMPONENT DID MOUNT");
         this.listenTo(TXStore, this.parseStore);
         this.parseStore(TXStore.state, this.props);
       }
@@ -896,7 +868,6 @@ var TXComponent = (function (_Component) {
       // Don't rerender children without change in props or state
 
       value: function shouldComponentUpdate(nextProps, nextState) {
-        console.log("shouldComponentUpdate", nextProps, nextState);
         return !_.isEqual(this.props, nextProps) || !_.isEqual(this.state, nextState);
       }
     },
@@ -964,6 +935,16 @@ exports.TXComponent = TXComponent;
 "use strict";
 
 module.exports = {
+  formatHex: function formatHex(hexStr) {
+    var withOx = arguments[1] === undefined ? false : arguments[1];
+
+    var hasOx = hexStr.slice(0, 2) == "0x";
+    if (withOx && !hasOx) {
+      return "0x" + hexStr;
+    }if (!withOx && hasOx) {
+      return hexStr.slice(2);
+    }return hexStr;
+  },
   toArr: function toArr(s) {
     try {
       return s.constructor === Array ? s : [s];
