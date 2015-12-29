@@ -417,6 +417,7 @@ export default Reflux.createStore({
       } else {
 
         // If unseen by objects (first tx data found for hash), add tx state to pending
+        data.hash = utils.formatHex(data.hash);
         if (!(data.hash in this.state.objects)) {
           this.setState({accounts: this.addTxState(this.state.accounts, {
             hash: data.hash,
@@ -622,7 +623,10 @@ export default Reflux.createStore({
   // For each txInfo, check if the hash exists in txInfo already, if it does, overwrite txInfo but don't append to tx array
   onAdd(payload, cb) {
     // Turn params into array if not already, filter out any not including hash property
-    payload = utils.toArr(payload).filter(function(el) { return el.hasOwnProperty('hash'); });
+    payload = utils.toArr(payload).filter(function(el) { return el.hasOwnProperty('hash'); }).map(function(p) {
+      p.hash = utils.formatHex(p.hash);
+      return p;
+    });
 
     // Hashes of txs that don't have objects recorded yet
     var newHashes = payload.filter(function(el) {

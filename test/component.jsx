@@ -15,6 +15,7 @@ import web3 from 'web3';
 import TXActions from '../src/Actions';
 import TXComponent from '../src/addons/Component';
 import { chain, createBatch } from './utils/mocketh';
+import utils from '../src/utils.js';
 
 
 var states = [
@@ -49,7 +50,7 @@ function validateState(component, expect) {
 	});
 }
 
-var testComponent;
+let testComponent, useOx = false;
 
 function setup(name) {
 	web3.eth = new chain(name);
@@ -59,7 +60,8 @@ function setup(name) {
 
 	TXActions.connect({confirmCount: 5});
 	var txs = web3.eth.chain.txs.map(function(tx) {
-		return {hash: getHash(tx)};
+		useOx = !useOx;
+		return {hash: utils.formatHex(getHash(tx), useOx)};
 	});
 
 	TXActions.add(txs);
