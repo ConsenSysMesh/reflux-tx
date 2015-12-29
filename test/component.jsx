@@ -111,9 +111,11 @@ describe('TXComponent', () => {
 
 		it('tx pending', function(done) {
 			web3.eth.getTransaction(txHash, function(err, txObj) {
-				validateTx(err, txObj, tx);
-				validateState(testComponent, ['pending']);
-				done();
+				setTimeout(function() {
+					validateTx(err, txObj, tx);
+					validateState(testComponent, ['pending']);
+					done();
+				}, 200)
 			});
 		});
 
@@ -160,8 +162,11 @@ describe('TXComponent', () => {
 			web3.eth.stop();
 		});
 
-		it('both txs pending', function() {
-			validateState(testComponent, {pending: txHashes});
+		it('both txs pending', function(done) {
+			setTimeout(function() {
+				validateState(testComponent, {pending: txHashes});
+				done();
+			}, 100)
 		});
 
 		it('tx0 received, tx1 dropped', function(done) {
