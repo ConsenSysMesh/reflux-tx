@@ -423,6 +423,7 @@ module.exports = Reflux.createStore({
       } else {
 
         // If unseen by objects (first tx data found for hash), add tx state to pending
+        data.hash = utils.formatHex(data.hash);
         if (!(data.hash in this.state.objects)) {
           this.setState({ accounts: this.addTxState(this.state.accounts, {
               hash: data.hash,
@@ -507,7 +508,7 @@ module.exports = Reflux.createStore({
   // TODO: add a timeout for unreceived pending?
   newBlock: function newBlock(err, hash) {
 
-    this.recordBlock(hash, (function (err, block) {
+    this.recordBlock(utils.formatHex(hash, true), (function (err, block) {
       if (err) {
         this.setState({ error: err });
         return;
@@ -621,6 +622,9 @@ module.exports = Reflux.createStore({
     // Turn params into array if not already, filter out any not including hash property
     payload = utils.toArr(payload).filter(function (el) {
       return el.hasOwnProperty("hash");
+    }).map(function (p) {
+      p.hash = utils.formatHex(p.hash);
+      return p;
     });
 
     // Hashes of txs that don't have objects recorded yet
@@ -938,7 +942,9 @@ module.exports = {
   formatHex: function formatHex(hexStr) {
     var withOx = arguments[1] === undefined ? false : arguments[1];
 
-    var hasOx = hexStr.slice(0, 2) == "0x";
+    if (typeof hexStr !== "string") {
+      return hexStr;
+    }var hasOx = hexStr.slice(0, 2) == "0x";
     if (withOx && !hasOx) {
       return "0x" + hexStr;
     }if (!withOx && hasOx) {
