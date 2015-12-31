@@ -105,6 +105,7 @@ mocketh.prototype.getAddress = function(index) {
 
 
 mocketh.prototype.getTransaction = function (hash, cb) {
+	hash = utils.formatHex(hash);
 	var tx = this.chain.txs.filter(function(tx) {
 		return (
 				web3.sha3(JSON.stringify(tx)) === hash
@@ -116,6 +117,7 @@ mocketh.prototype.getTransaction = function (hash, cb) {
 }
 
 mocketh.prototype.getTransactionReceipt = function (hash, cb) {
+	hash = utils.formatHex(hash);
 	var tx = this.chain.txs.filter(function(tx) {
 		return (
 				tx.hasOwnProperty('reception') &&
