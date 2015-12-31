@@ -29,7 +29,7 @@
     "react-pure-render": "*",
     "reflux": "^0.3.0",
     "reflux-state-mixin": "^0.6.3",
-    "web3": "*"
+    "web3": "<0.14.0"
   },
   "devDependencies": {
     "babel": "^4.6.4",
