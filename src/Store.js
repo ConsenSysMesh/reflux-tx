@@ -649,9 +649,11 @@ export default Reflux.createStore({
     // Get new transaction objects from web3, then load receipts (if the hashes are new...otherwise don't waste time)
     if (newHashes.length)
       this.loadTxData(newHashes, ['object'], function(err) {
-        if (err) cb(err);
-        // if no cb error, then we can safeuly assume newHashes have txObjects in state
-        else {
+        if (err) {
+          this.setState({error: err});
+          if (typeof cb == 'function') cb(err);
+          else console.error('Error in loadTxData', err);
+        } else {  // if no cb error, then we can safeuly assume newHashes have txObjects in state
           // Must load receipts using whole stateObjects so the new states can be updated correctly
           this.loadTxData(newHashes.map(function(hash) {
             return this.getTxState(hash);
