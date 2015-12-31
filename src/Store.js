@@ -453,6 +453,8 @@ export default Reflux.createStore({
           hash: hash
         };
 
+      hash = utils.formatHex(hash, true);
+
       if (methodTest.object)
         batch.add(web3.eth.getTransaction.request(hash, handleData.bind(this, stateObj)));
 
