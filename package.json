@@ -1,6 +1,6 @@
 {
   "name": "reflux-tx",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Reflux store and component wrapper to store and retrieve ethereum transactions and related info",
   "main": "./lib/index.js",
   "repository": {
@@ -24,9 +24,6 @@
     "localforage": "1.2.7",
     "lodash": "3.9.x",
     "object-assign": "*",
-    "react": "0.13.x",
-    "react-mixin": "*",
-    "react-pure-render": "*",
     "reflux": "^0.3.0",
     "reflux-state-mixin": "^0.6.3",
     "web3": "<0.14.0"
@@ -45,6 +42,11 @@
     "sinon": "^1.16.1",
     "sinon-chai": "^2.8.0",
     "uglify-js": "^2.4.24"
+  },
+  "peerDependencies": {
+    "react": ">=0.12.2 <0.15.0",
+    "react-mixin": "*",
+    "react-pure-render": "*"
   },
   "scripts": {
     "prepublish": "babel -d ./lib ./src/",

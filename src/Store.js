@@ -1,5 +1,4 @@
 import localforage from 'localforage';
-import React   from 'react/addons';
 import Reflux  from 'reflux';
 import StateMixinFactory from 'reflux-state-mixin';
 import _ from 'lodash';

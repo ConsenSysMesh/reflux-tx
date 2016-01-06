@@ -1,6 +1,5 @@
 import _ from 'lodash';
-import React  from 'react/addons';
-import { Component }  from 'react/addons';
+import React  from 'react';
 import Reflux from 'reflux';
 import ReactMixin from 'react-mixin';
 import assign from 'object-assign';
@@ -21,7 +20,7 @@ var baseState = {
   blockHash: ''
 };
 
-class TXComponent extends Component {
+class TXComponent extends React.Component {
   constructor(props, context) {
       super(props, context);
       this.state = _.cloneDeep(baseState);
