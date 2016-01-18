@@ -1,6 +1,6 @@
 {
   "name": "reflux-tx",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Reflux store and component wrapper to store and retrieve ethereum transactions and related info",
   "main": "./lib/index.js",
   "repository": {
@@ -50,6 +50,7 @@
   },
   "scripts": {
     "prepublish": "babel -d ./lib ./src/",
+    "prebuild": "npm run prepublish",
     "build": "./node_modules/.bin/browserify -s refluxTX -e ./lib/index.js | tee dist/refluxTX.js | ./node_modules/.bin/uglifyjs -m > dist/refluxTX.min.js",
     "test": "mocha --opts ./test/mocha.opts --compilers js:babel/register --recursive test/*.jsx"
   }
