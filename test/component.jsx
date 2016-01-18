@@ -58,7 +58,7 @@ function setup(name) {
 	testComponent = TestUtils.renderIntoDocument(<TXComponent />);
 	TXActions.clearAll();
 
-	TXActions.connect({confirmCount: 5});
+	TXActions.connect(web3, {confirmCount: 5});
 	var txs = web3.eth.chain.txs.map(function(tx) {
 		useOx = !useOx;
 		return {hash: utils.formatHex(getHash(tx), useOx)};
@@ -200,7 +200,7 @@ describe('TXComponent', () => {
 			txHashes = txs.map(function(tx) {
 				return getHash(tx);
 			});
-			TXActions.connect({confirmCount: 2, bufferSize: 2});
+			TXActions.connect(web3, {confirmCount: 2, bufferSize: 2});
 		});
 		after(() => {
 			web3.eth.stop();

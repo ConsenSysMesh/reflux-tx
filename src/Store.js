@@ -2,10 +2,11 @@ import localforage from 'localforage';
 import Reflux  from 'reflux';
 import StateMixinFactory from 'reflux-state-mixin';
 import _ from 'lodash';
-import web3 from 'web3';
 
 import TXActions from './Actions';
 import utils from './utils';
+
+let web3;
 
 var baseState = {
     nonce: 0,
@@ -706,10 +707,10 @@ export default Reflux.createStore({
     bufferSize: 50      //  Max # of confirmed transactions to keep in storage
   }
   */
-  onConnect(opts) {
-    if (_.has(opts, 'provider')) web3.setProvider(new web3.providers.HttpProvider(opts.provider));
+  onConnect(localWeb3, opts) {
     if (_.has(opts, 'confirmCount')) this.confirmCount = opts.confirmCount;
     if (_.has(opts, 'bufferSize')) this.bufferSize = opts.bufferSize;
+    web3 = localWeb3;
 
     var txStore = this;
 

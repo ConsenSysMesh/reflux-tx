@@ -25,8 +25,7 @@
     "lodash": "3.9.x",
     "object-assign": "*",
     "reflux": "^0.3.0",
-    "reflux-state-mixin": "^0.6.3",
-    "web3": "<0.14.0"
+    "reflux-state-mixin": "^0.6.3"
   },
   "devDependencies": {
     "babel": "^4.6.4",
@@ -41,7 +40,8 @@
     "node-jsdom": "^3.1.5",
     "sinon": "^1.16.1",
     "sinon-chai": "^2.8.0",
-    "uglify-js": "^2.4.24"
+    "uglify-js": "^2.4.24",
+    "web3": "<0.14.0"
   },
   "peerDependencies": {
     "react": ">=0.12.2 <0.15.0",
