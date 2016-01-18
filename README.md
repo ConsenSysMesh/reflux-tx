@@ -62,6 +62,22 @@ Before connecting to the store, you must first initialize it in a toplevel compo
 
 Available options
 
+
+<b> versions >= 0.2.0 </b>
+
+Note: for version 0.2.0 and above, web3 is a required parameter for `TXStore.connect` so the provider option is removed
+
+Field Name  | Description | Default
+------------- | ------------- | ------------
+confirmCount  | Number of blocks before a tx is sufficiently confirmed | 12
+bufferSize  | Max number of resolved transactions (failed + confirmed) to keep in localstorage per-account | 100
+
+Example:
+
+`TXActions.connect(web3, {confirmCount: 10, bufferSize: 5})`
+
+<b> versions < 0.2.0 </b>
+
 Field Name  | Description | Default
 ------------- | ------------- | ------------
 provider  | web3 http provider | assumes already set
