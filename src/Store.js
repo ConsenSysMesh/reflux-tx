@@ -391,7 +391,7 @@ export default Reflux.createStore({
 
       // else, data was received
       } else {
-        getTimestamp(recpt.blockHash, function(err, block) {
+        getTimestamp(recpt.blockHash || recpt.blockNumber, function(err, block) {
           recpt.timestamp = block.timestamp;
           this.setState({receipts: _.set(this.state.receipts, hash, recpt)});
           this.updateState(stateObj, 'received', false); // implicitly saves the state of the receipt
