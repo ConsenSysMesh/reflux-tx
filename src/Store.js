@@ -345,6 +345,8 @@ export default Reflux.createStore({
   // Load the tx info for an array of transactions (defaults to this.txs)
   // Save any unclaimed transactions into pending
   loadTxData(payload, methods = ['receipt', 'object'], callback = null) {
+    let blockTimestamps = {};
+
     var txs = utils.toArr(payload);
 
     // If no txs requested, default to all pending & received & dropped for all accounts
@@ -356,6 +358,13 @@ export default Reflux.createStore({
 
     var dataCount = 0;
     var errors = [];
+
+    function getTimestamp(blockHash, cb) {
+      if (blockHash in blockTimestamps)
+        cb(null, blockTimestamps[blockHash]);
+      else
+        web3.eth.getBlock(blockHash, cb);
+    }
 
     // If no receipt, hash is pending, else move from pending to unconfirmed
     function handleReceipt(stateObj, err, recpt) {
@@ -382,8 +391,11 @@ export default Reflux.createStore({
 
       // else, data was received
       } else {
-        this.setState({receipts: _.set(this.state.receipts, hash, recpt)});
-        this.updateState(stateObj, 'received', false); // implicitly saves the state of the receipt
+        getTimestamp(recpt.blockHash, function(err, block) {
+          recpt.timestamp = block.timestamp;
+          this.setState({receipts: _.set(this.state.receipts, hash, recpt)});
+          this.updateState(stateObj, 'received', false); // implicitly saves the state of the receipt
+        }.bind(this));
       }
 
       // No erros need to be recorded in handleReceipt?
