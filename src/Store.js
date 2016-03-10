@@ -51,18 +51,6 @@ export default Reflux.createStore({
   // Web3 filter ID
   filter: null,
 
-  init() {
-    // setup localforage driver
-    localforage.config({
-        driver      : localforage.WEBSQL, // Force WebSQL; same as using setDriver()
-        name        : 'web3Store',
-        version     : 1.0,
-        size        : 4980736, // Size of database, in bytes. WebSQL-only for now.
-        storeName   : 'transactionStore', // Should be alphanumeric, with underscores.
-        description : 'keep track of ethereum transaction hashes and related info'
-    });
-  },
-
   getInitialState() {
     return _.cloneDeep(baseState);
   },
