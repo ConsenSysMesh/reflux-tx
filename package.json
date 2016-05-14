@@ -25,7 +25,7 @@
     "lodash": "3.9.x",
     "object-assign": "*",
     "reflux": "^0.3.0",
-    "reflux-state-mixin": "^0.6.3"
+    "reflux-state-mixin": "^0.7.0"
   },
   "devDependencies": {
     "babel": "^4.6.4",
