@@ -165,7 +165,7 @@ export default Reflux.createStore({
     else if (stateObj.type === 'pending')
       typeState.push(stateObj.hash);
     else
-      throw new Error('A hash ' + typeState + ' already exists for type ' + stateObj.type + ' and account ' + stateObj.account + '. Adding hash ' + stateObj.hash + ' failed');
+      return accounts;
 
     var i = nonces.length;
     var nonce;
@@ -552,6 +552,7 @@ export default Reflux.createStore({
   // called in onAdd & onConnect (when any pending or unconfirmed)
   startWatching() {
     if (this.filter) return;
+
     this.filter = web3.eth.filter('latest');
     this.filter.watch(this.newBlock);
   },
